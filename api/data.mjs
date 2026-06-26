@@ -1,3 +1,5 @@
+import { get, put } from "@vercel/blob";
+
 const BLOB_PATH = "dashboard/data.json";
 
 function isAuthorized(req) {
@@ -7,9 +9,7 @@ function isAuthorized(req) {
 	return auth === `Bearer ${secret}`;
 }
 
-module.exports = async function handler(req, res) {
-	const { get, put } = await import("@vercel/blob");
-
+export default async function handler(req, res) {
 	if (!isAuthorized(req)) {
 		return res.status(401).json({ error: "Unauthorized" });
 	}
@@ -26,7 +26,6 @@ module.exports = async function handler(req, res) {
 			const text = await new Response(result.stream).text();
 			return res.status(200).json(JSON.parse(text));
 		} catch (err) {
-			// Blob doesn't exist yet
 			if (err.message && err.message.includes("404")) {
 				return res.status(200).json({});
 			}
@@ -62,4 +61,4 @@ module.exports = async function handler(req, res) {
 	}
 
 	return res.status(405).json({ error: "Method not allowed" });
-};
+}
