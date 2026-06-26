@@ -1,4 +1,4 @@
-import { get, put } from "@vercel/blob";
+import { head, put } from "@vercel/blob";
 
 const BLOB_PATH = "dashboard/data.json";
 
@@ -16,17 +16,25 @@ export default async function handler(req, res) {
 
 	if (req.method === "GET") {
 		try {
-			const result = await get(BLOB_PATH, {
-				access: "private",
-				useCache: false,
-			});
-			if (!result || result.statusCode !== 200 || !result.stream) {
+			const metadata = await head(BLOB_PATH);
+			if (!metadata) {
 				return res.status(200).json({});
 			}
-			const text = await new Response(result.stream).text();
-			return res.status(200).json(JSON.parse(text));
+			const response = await fetch(metadata.downloadUrl, {
+				headers: {
+					Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+				},
+			});
+			if (!response.ok) {
+				return res.status(200).json({});
+			}
+			const data = await response.json();
+			return res.status(200).json(data);
 		} catch (err) {
-			if (err.message && err.message.includes("404")) {
+			if (
+				err.name === "BlobNotFoundError" ||
+				(err.message && err.message.includes("404"))
+			) {
 				return res.status(200).json({});
 			}
 			console.error("GET /api/data error:", err);
