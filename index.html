@@ -1,0 +1,3870 @@
+<!doctype html>
+<html lang="nl">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Mijn Ultieme Life Dashboard</title>
+		<style>
+			:root {
+				--bg-color: #f8fbf8;
+				--text-color: #2d3436;
+				--card-bg: #ffffff;
+
+				/* Kalender / Thema kleuren */
+				--primary-color: #5c9e8f;
+				--calendar-hover: #e8f1ef;
+				--calendar-active: #5c9e8f;
+
+				/* Energie Kleuren */
+				--high-color: #ff7675;
+				--medium-color: #fdcb6e;
+				--low-color: #55efc4;
+				--appointment-color: #2980b9; /* Afspraken opvallend blauw */
+				--empty-color: #f1f2f6;
+			}
+
+			body {
+				font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+				background-color: var(--bg-color);
+				color: var(--text-color);
+				margin: 0;
+				padding: 20px;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+			}
+
+			.header {
+				text-align: center;
+				margin-bottom: 20px;
+			}
+			h1 {
+				color: var(--primary-color);
+				margin-bottom: 5px;
+			}
+			p.subtitle {
+				margin-top: 0;
+				color: #888;
+				font-size: 0.95rem;
+			}
+
+			.dashboard-container {
+				display: flex;
+				gap: 30px;
+				width: 100%;
+				max-width: 1250px;
+				flex-wrap: wrap;
+				align-items: flex-start;
+			}
+
+			/* --- LINKER PANEEL --- */
+			.sidebar {
+				flex: 1;
+				min-width: 340px;
+				display: flex;
+				flex-direction: column;
+				gap: 20px;
+				position: sticky;
+				top: 20px;
+				max-height: calc(100vh - 40px);
+				overflow-y: auto;
+				scrollbar-width: thin;
+			}
+
+			.sidebar::-webkit-scrollbar {
+				width: 6px;
+			}
+			.sidebar::-webkit-scrollbar-thumb {
+				background-color: rgba(0, 0, 0, 0.1);
+				border-radius: 10px;
+			}
+
+			.card {
+				background: var(--card-bg);
+				padding: 20px;
+				border-radius: 12px;
+				box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+			}
+			.card h2 {
+				margin-top: 0;
+				font-size: 1.1rem;
+				color: var(--primary-color);
+				border-bottom: 1px solid #eee;
+				padding-bottom: 10px;
+				margin-bottom: 15px;
+			}
+
+			/* Kalender Styling */
+			.calendar-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 15px;
+				font-weight: bold;
+			}
+			.calendar-header button {
+				background: none;
+				border: none;
+				color: var(--primary-color);
+				font-size: 1.5rem;
+				cursor: pointer;
+			}
+			.calendar-grid {
+				display: grid;
+				grid-template-columns: repeat(7, 1fr);
+				gap: 5px;
+				text-align: center;
+			}
+			.day-name {
+				font-weight: bold;
+				color: #a4b0be;
+				font-size: 0.75rem;
+				margin-bottom: 5px;
+				text-transform: uppercase;
+			}
+
+			.calendar-day {
+				padding: 8px;
+				border-radius: 6px;
+				cursor: pointer;
+				transition: all 0.2s;
+				font-size: 0.9rem;
+				border: 2px solid transparent;
+			}
+			.calendar-day:hover {
+				background-color: var(--calendar-hover);
+			}
+			.calendar-day.active {
+				background-color: var(--calendar-active);
+				color: white;
+				font-weight: bold;
+			}
+			.calendar-day.has-tasks {
+				border-bottom-color: var(--high-color);
+				border-bottom-style: solid;
+			}
+
+			/* --- ACCORDEON MENU --- */
+			.accordion-btn {
+				background-color: #fdfdfd;
+				color: var(--text-color);
+				cursor: pointer;
+				padding: 12px 15px;
+				width: 100%;
+				text-align: left;
+				border: 1px solid #eee;
+				border-radius: 8px;
+				outline: none;
+				transition: 0.2s;
+				font-weight: bold;
+				font-size: 0.95rem;
+				margin-bottom: 8px;
+				display: flex;
+				justify-content: space-between;
+			}
+			.accordion-btn:hover {
+				background-color: #f1f2f6;
+			}
+			.accordion-btn.active {
+				background-color: #e8f1ef;
+				border-color: var(--primary-color);
+				color: var(--primary-color);
+			}
+			.accordion-btn::after {
+				content: "\002B";
+				font-size: 1.2rem;
+				font-weight: normal;
+			}
+			.accordion-btn.active::after {
+				content: "\2212";
+			}
+
+			.accordion-content {
+				padding: 0 5px;
+				max-height: 0;
+				overflow: hidden;
+				transition: max-height 0.3s ease-out;
+				opacity: 0;
+			}
+			.accordion-content.show {
+				opacity: 1;
+				margin-bottom: 15px;
+				padding-bottom: 10px;
+			}
+
+			/* Draggable Chips (Blokjes) */
+			.chip-container {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 8px;
+				margin-top: 10px;
+			}
+			.draggable-chip {
+				display: flex;
+				align-items: center;
+				gap: 6px;
+				padding: 6px 12px;
+				border-radius: 20px;
+				font-size: 0.8rem;
+				font-weight: 600;
+				cursor: grab;
+				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+				transition: transform 0.1s;
+				user-select: none;
+			}
+			.draggable-chip:active {
+				cursor: grabbing;
+				transform: scale(0.95);
+			}
+			.chip-high {
+				background-color: var(--high-color);
+				color: white;
+			}
+			.chip-medium {
+				background-color: var(--medium-color);
+				color: #2d3436;
+			}
+			.chip-low {
+				background-color: var(--low-color);
+				color: #2d3436;
+			}
+			.chip-appointment {
+				background-color: var(--appointment-color);
+				color: white;
+				border: 1px dashed white;
+			}
+
+			.chip-delete-btn {
+				background: rgba(0, 0, 0, 0.1);
+				border-radius: 50%;
+				width: 18px;
+				height: 18px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 0.7rem;
+				cursor: pointer;
+				transition: 0.2s;
+			}
+			.chip-delete-btn:hover {
+				background: rgba(0, 0, 0, 0.3);
+				color: white;
+			}
+
+			.btn-workblock {
+				display: block;
+				width: 100%;
+				padding: 10px;
+				margin-bottom: 8px;
+				border-radius: 8px;
+				border: 1px solid #ddd;
+				background: #fff;
+				cursor: pointer;
+				font-weight: bold;
+				color: #555;
+				text-align: left;
+				transition: 0.2s;
+			}
+			.btn-workblock:hover {
+				background: #f8f9fa;
+				border-color: #bbb;
+			}
+
+			.add-chore-form {
+				display: flex;
+				flex-direction: column;
+				gap: 8px;
+				margin-top: 10px;
+			}
+			.add-chore-row {
+				display: flex;
+				gap: 5px;
+				flex-wrap: wrap;
+			}
+			.add-chore-row input {
+				flex: 2;
+				min-width: 150px;
+				padding: 8px;
+				border: 1px solid #ddd;
+				border-radius: 6px;
+				font-size: 0.8rem;
+				outline: none;
+			}
+			.add-chore-row select {
+				flex: 1;
+				min-width: 100px;
+				padding: 8px;
+				border: 1px solid #ddd;
+				border-radius: 6px;
+				font-size: 0.8rem;
+				outline: none;
+				background: white;
+			}
+			.add-chore-row button {
+				padding: 8px 12px;
+				background-color: var(--primary-color);
+				color: white;
+				border: none;
+				border-radius: 6px;
+				cursor: pointer;
+				font-weight: bold;
+			}
+
+			.inline-add-row {
+				display: flex;
+				gap: 5px;
+				margin-top: 12px;
+				border-top: 1px dashed #eee;
+				padding-top: 10px;
+			}
+			.inline-add-row input {
+				flex: 1;
+				padding: 6px 10px;
+				border: 1px solid #ddd;
+				border-radius: 6px;
+				font-size: 0.8rem;
+				outline: none;
+			}
+			.inline-add-row select {
+				padding: 6px;
+				border: 1px solid #ddd;
+				border-radius: 6px;
+				font-size: 0.8rem;
+				background: white;
+				outline: none;
+				cursor: pointer;
+			}
+			.inline-add-row button {
+				padding: 6px 12px;
+				background-color: var(--primary-color);
+				color: white;
+				border: none;
+				border-radius: 6px;
+				cursor: pointer;
+				font-weight: bold;
+				font-size: 0.9rem;
+			}
+			.inline-add-row button:hover {
+				filter: brightness(0.9);
+			}
+
+			.recurring-list {
+				list-style: none;
+				padding: 0;
+				margin: 10px 0 0 0;
+				font-size: 0.85rem;
+			}
+			.recurring-item {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding: 6px 10px;
+				background: #f1f2f6;
+				margin-bottom: 4px;
+				border-radius: 6px;
+			}
+
+			/* Visuele Energie-batterij container styling */
+			.stats {
+				margin-top: 20px;
+				padding: 15px;
+				background: #ffffff;
+				border-radius: 12px;
+				border: 1px solid #eee;
+				border-left: 4px solid var(--primary-color);
+				display: flex;
+				flex-direction: column;
+				gap: 12px;
+				box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+			}
+
+			.battery-shape {
+				width: 55px;
+				height: 26px;
+				border: 3px solid #2d3436;
+				border-radius: 6px;
+				padding: 2px;
+				position: relative;
+				display: flex;
+				background: #fff;
+				box-sizing: border-box;
+			}
+			.battery-shape::after {
+				content: "";
+				position: absolute;
+				right: -6px;
+				top: 5px;
+				width: 4px;
+				height: 10px;
+				background: #2d3436;
+				border-radius: 0 3px 3px 0;
+			}
+			.battery-bar {
+				height: 100%;
+				background: var(--low-color);
+				border-radius: 2px;
+				width: 70%;
+				transition:
+					width 0.4s ease,
+					background-color 0.4s ease;
+			}
+			.battery-text {
+				font-size: 0.8rem;
+				color: #636e72;
+				line-height: 1.4;
+			}
+
+			.btn-data {
+				width: 100%;
+				padding: 10px;
+				margin-bottom: 8px;
+				border-radius: 8px;
+				border: 1px solid var(--primary-color);
+				background: #e8f1ef;
+				color: var(--primary-color);
+				cursor: pointer;
+				font-weight: bold;
+				transition: 0.2s;
+				text-align: center;
+			}
+			.btn-data:hover {
+				background: var(--primary-color);
+				color: white;
+			}
+
+			/* Timer, Habits & Kladblok Widgets CSS */
+			.timer-display {
+				font-size: 2.5rem;
+				font-weight: bold;
+				text-align: center;
+				color: #2d3436;
+				margin: 5px 0;
+				font-family: monospace;
+			}
+			.timer-btn-row {
+				display: flex;
+				gap: 8px;
+				justify-content: center;
+			}
+			.timer-btn {
+				flex: 1;
+				padding: 8px;
+				border: none;
+				border-radius: 6px;
+				font-weight: bold;
+				cursor: pointer;
+				transition: 0.2s;
+			}
+			.timer-start {
+				background-color: var(--primary-color);
+				color: white;
+			}
+			.timer-reset {
+				background-color: #747d8c;
+				color: white;
+			}
+
+			.timer-target-text {
+				font-size: 0.8rem;
+				color: #636e72;
+				text-align: center;
+				margin-top: 5px;
+				font-style: italic;
+				cursor: pointer;
+				transition: color 0.2s;
+				padding: 4px;
+				border-radius: 4px;
+			}
+			.timer-target-text:hover {
+				color: var(--primary-color);
+				background-color: var(--calendar-hover);
+			}
+
+			.habit-row {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 8px 0;
+				border-bottom: 1px dashed #eee;
+				font-size: 0.9rem;
+				gap: 8px;
+			}
+			.habit-row:last-child {
+				border-bottom: none;
+			}
+			.habit-left {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				flex: 1;
+			}
+			.habit-cb {
+				width: 18px;
+				height: 18px;
+				cursor: pointer;
+				accent-color: var(--primary-color);
+			}
+
+			.scratchpad-textarea {
+				width: 100%;
+				height: 120px;
+				border: 1px solid #ddd;
+				border-radius: 8px;
+				padding: 10px;
+				box-sizing: border-box;
+				resize: vertical;
+				outline: none;
+				font-family: inherit;
+				font-size: 0.85rem;
+				color: var(--text-color);
+			}
+			.scratchpad-textarea:focus {
+				border-color: var(--primary-color);
+			}
+
+			/* Analyserapport Styling */
+			.analysis-row {
+				margin-bottom: 15px;
+			}
+			.analysis-label {
+				font-size: 0.9rem;
+				font-weight: bold;
+				margin-bottom: 5px;
+				display: flex;
+				justify-content: space-between;
+			}
+			.analysis-bar-container {
+				background: #f1f2f6;
+				width: 100%;
+				height: 18px;
+				border-radius: 8px;
+				overflow: hidden;
+				position: relative;
+			}
+			.analysis-bar-fill {
+				background-color: var(--primary-color);
+				height: 100%;
+				border-radius: 8px;
+				transition: width 0.5s ease;
+			}
+
+			/* --- RECHTER PANEEL --- */
+			.timeline-section {
+				flex: 2;
+				min-width: 320px;
+				background: var(--card-bg);
+				padding: 25px;
+				border-radius: 12px;
+				box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+			}
+			.timeline-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				border-bottom: 2px solid #eee;
+				padding-bottom: 15px;
+				margin-bottom: 20px;
+				flex-wrap: wrap;
+				gap: 10px;
+			}
+			.date-title {
+				margin: 0;
+				color: var(--primary-color);
+				font-size: 1.5rem;
+			}
+
+			.view-toggle {
+				display: flex;
+				gap: 5px;
+				background: #f1f2f6;
+				padding: 4px;
+				border-radius: 8px;
+			}
+			.view-toggle button {
+				padding: 6px 14px;
+				border: none;
+				background: transparent;
+				border-radius: 6px;
+				cursor: pointer;
+				font-weight: bold;
+				color: #747d8c;
+				font-size: 0.85rem;
+				transition: all 0.2s;
+			}
+			.view-toggle button.active {
+				background: white;
+				color: var(--primary-color);
+				box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+			}
+
+			.header-actions {
+				display: flex;
+				gap: 10px;
+				align-items: center;
+			}
+			.btn-clear {
+				padding: 8px 14px;
+				background: white;
+				color: #ff7675;
+				border: 1px solid #ff7675;
+				border-radius: 6px;
+				cursor: pointer;
+				font-size: 0.85rem;
+				font-weight: bold;
+				transition: 0.2s;
+			}
+			.btn-clear:hover {
+				background: #ffeaa7;
+				color: #d35400;
+				border-color: #d35400;
+			}
+
+			.task-lists-container {
+				display: flex;
+				gap: 15px;
+				margin-bottom: 25px;
+				flex-wrap: wrap;
+			}
+
+			.todo-section {
+				flex: 1;
+				min-width: 230px;
+				background: #f8f9fa;
+				border-radius: 10px;
+				padding: 15px;
+				border-left: 4px solid #0984e3;
+				border: 2px solid transparent;
+				transition: all 0.2s;
+			}
+			.todo-section h3 {
+				margin-top: 0;
+				font-size: 1rem;
+				margin-bottom: 12px;
+				color: #0984e3;
+			}
+			.todo-section.drag-over {
+				border: 2px dashed #0984e3 !important;
+				background-color: #e8f4fd;
+				transform: scale(1.02);
+			}
+
+			.goals-section {
+				border-left-color: #9b59b6;
+				background: #fcf4ff;
+			}
+			.goals-section h3 {
+				color: #9b59b6;
+			}
+			.goals-section .todo-input-group button {
+				background: #9b59b6;
+			}
+
+			.braindump-section {
+				border-left-color: #34495e;
+				background: #f0f4f8;
+			}
+			.braindump-section h3 {
+				color: #34495e;
+			}
+			.braindump-section .todo-input-group button {
+				background: #34495e;
+			}
+
+			.todo-list {
+				list-style: none;
+				padding: 0;
+				margin: 0 0 12px 0;
+			}
+			.todo-item {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 8px 12px;
+				background: white;
+				margin-bottom: 6px;
+				border-radius: 6px;
+				border: 1px solid #eee;
+				transition: background 0.2s;
+				cursor: grab;
+			}
+			.todo-item:active {
+				cursor: grabbing;
+			}
+			.todo-item:hover {
+				border-color: #ccc;
+				background: #fafafa;
+			}
+			.todo-item.checked .todo-text {
+				text-decoration: line-through;
+				color: #a4b0be;
+			}
+			.todo-text {
+				font-weight: 500;
+				font-size: 0.9rem;
+				cursor: pointer;
+			}
+
+			.todo-actions {
+				display: flex;
+				gap: 4px;
+			}
+			.todo-btn {
+				background: none;
+				border: none;
+				cursor: pointer;
+				font-size: 1.1rem;
+				padding: 0 4px;
+				transition: 0.1s;
+			}
+			.todo-btn.move {
+				color: #3498db;
+			}
+			.todo-btn.move:hover {
+				transform: scale(1.15);
+				color: #2980b9;
+			}
+			.todo-btn.delete {
+				color: #ff7675;
+			}
+			.todo-btn.delete:hover {
+				transform: scale(1.15);
+				color: #d63031;
+			}
+
+			.todo-input-group {
+				display: flex;
+				gap: 5px;
+				align-items: stretch;
+			}
+			.todo-input-group input[type="text"] {
+				flex: 1;
+				padding: 10px;
+				border: 1px solid #ddd;
+				border-radius: 6px;
+				outline: none;
+				font-size: 0.85rem;
+			}
+			.todo-input-group input[type="number"] {
+				flex: 0 0 45px;
+				padding: 10px;
+				border: 1px solid #ddd;
+				border-radius: 6px;
+				outline: none;
+				font-size: 0.85rem;
+				text-align: center;
+			}
+			.todo-input-group button {
+				padding: 10px 15px;
+				background: #0984e3;
+				color: white;
+				border: none;
+				border-radius: 6px;
+				cursor: pointer;
+				font-weight: bold;
+				transition: 0.2s;
+			}
+
+			.time-block {
+				display: flex;
+				margin-bottom: 8px;
+				align-items: stretch;
+				min-height: 50px;
+			}
+			.hour-label {
+				width: 55px;
+				font-weight: 600;
+				color: #a4b0be;
+				display: flex;
+				align-items: center;
+				justify-content: flex-end;
+				padding-right: 15px;
+				font-size: 0.85rem;
+			}
+			.task-area {
+				flex: 1;
+				background-color: var(--empty-color);
+				border-radius: 8px;
+				padding: 12px 15px;
+				cursor: pointer;
+				transition: all 0.2s;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				font-weight: 500;
+				font-size: 0.95rem;
+				user-select: none;
+				border: 2px solid transparent;
+			}
+			.task-area:hover {
+				filter: brightness(0.95);
+			}
+
+			.task-area[draggable="true"] {
+				cursor: grab;
+			}
+			.task-area[draggable="true"]:active {
+				cursor: grabbing;
+			}
+			.task-area.drag-over {
+				border: 2px dashed #0984e3;
+				background-color: #e8f4fd;
+				transform: scale(1.01);
+			}
+
+			.task-action-btns {
+				display: flex;
+				gap: 8px;
+				align-items: center;
+			}
+			.extend-btn,
+			.delete-btn {
+				background: transparent;
+				border: none;
+				color: rgba(0, 0, 0, 0.25);
+				cursor: pointer;
+				font-size: 1.2rem;
+				display: none;
+				padding: 0 2px;
+			}
+			.task-area.has-task .extend-btn,
+			.task-area.has-task .delete-btn {
+				display: block;
+			}
+			.task-area.has-task .extend-btn:hover {
+				color: #0984e3;
+				transform: scale(1.15);
+			}
+			.task-area.has-task .delete-btn:hover {
+				color: #ff7675;
+				transform: scale(1.15);
+			}
+
+			/* Weekweergave Grid */
+			.weekly-grid {
+				display: grid;
+				grid-template-columns: 55px repeat(7, 1fr);
+				gap: 4px;
+				margin-top: 10px;
+			}
+			.weekly-cell {
+				border-radius: 4px;
+				padding: 6px 4px;
+				font-size: 0.75rem;
+				min-height: 38px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				text-align: center;
+				word-break: break-word;
+				cursor: pointer;
+				transition: all 0.15s;
+				box-sizing: border-box;
+			}
+			.weekly-cell.header-cell {
+				background: var(--primary-color);
+				color: white;
+				font-weight: bold;
+				cursor: default;
+				min-height: 45px;
+			}
+			.weekly-cell.time-cell {
+				font-weight: bold;
+				color: #a4b0be;
+				justify-content: flex-end;
+				padding-right: 8px;
+				cursor: default;
+				background: transparent;
+			}
+			.weekly-cell.empty-cell {
+				background: var(--empty-color);
+				border: 1px dashed rgba(0, 0, 0, 0.02);
+			}
+			.weekly-cell.empty-cell:hover {
+				background: #e1e2e6;
+			}
+			.weekly-cell.task-cell {
+				font-weight: bold;
+				box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+				line-height: 1.2;
+				border-top: 1px solid rgba(255, 255, 255, 0.15);
+				border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+			}
+			.weekly-cell.task-cell:hover {
+				filter: brightness(0.9);
+				transform: scale(1.01);
+				z-index: 2;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="header">
+			<h1>Mijn Ultieme Life Dashboard</h1>
+			<p class="subtitle">
+				Sleep je acties direct naar je tijdlijn en creëer rust.
+			</p>
+		</div>
+
+		<div class="dashboard-container">
+			<div class="sidebar">
+				<div class="card">
+					<h2>📅 Kalender</h2>
+					<div class="calendar-header">
+						<button onclick="changeMonth(-1)">&#8592;</button>
+						<span id="month-year-display">Maand Jaar</span>
+						<button onclick="changeMonth(1)">&#8594;</button>
+					</div>
+					<div class="calendar-grid">
+						<div class="day-name">Ma</div>
+						<div class="day-name">Di</div>
+						<div class="day-name">Wo</div>
+						<div class="day-name">Do</div>
+						<div class="day-name">Vr</div>
+						<div class="day-name">Za</div>
+						<div class="day-name">Zo</div>
+					</div>
+					<div id="calendar-days" class="calendar-grid"></div>
+				</div>
+
+				<!-- Focus Timer Widget -->
+				<div class="card">
+					<h2>⏱️ Focus Timer</h2>
+					<div
+						style="
+							display: flex;
+							gap: 8px;
+							justify-content: center;
+							align-items: center;
+							margin-bottom: 10px;
+						"
+					>
+						<label
+							for="timer-duration"
+							style="
+								font-size: 0.85rem;
+								color: #636e72;
+								font-weight: 600;
+							"
+							>Duur instellen:</label
+						>
+						<input
+							type="number"
+							id="timer-duration"
+							min="1"
+							max="180"
+							value="25"
+							onchange="changeDuration()"
+							style="
+								width: 65px;
+								padding: 5px;
+								border: 1px solid #ddd;
+								border-radius: 6px;
+								text-align: center;
+								font-weight: bold;
+								outline: none;
+							"
+						/>
+						<span
+							style="
+								font-size: 0.85rem;
+								color: #636e72;
+								font-weight: 600;
+							"
+							>min</span
+						>
+					</div>
+					<div class="timer-display" id="timer-clock">25:00</div>
+					<div
+						class="timer-target-text"
+						id="timer-target"
+						onclick="setCustomTimerTarget()"
+						title="Klik hier om handmatig je focusdoel aan te passen"
+					>
+						Doel: Geen actief focusdoel
+					</div>
+					<div class="timer-btn-row">
+						<button
+							class="timer-btn timer-start"
+							id="timer-start-btn"
+							onclick="toggleTimer()"
+						>
+							Start
+						</button>
+						<button
+							class="timer-btn timer-reset"
+							onclick="resetTimer()"
+						>
+							Reset
+						</button>
+					</div>
+				</div>
+
+				<!-- Mijn Shop & Gift Hub Widget -->
+				<div class="card" style="padding-bottom: 10px">
+					<h2>🛍️ Mijn Shop & Gift Hub</h2>
+
+					<button class="accordion-btn">
+						📦 Bestellingen Tracker
+					</button>
+					<div class="accordion-content">
+						<div id="orders-list"></div>
+						<div
+							class="inline-add-row"
+							onmousedown="event.stopPropagation()"
+						>
+							<input
+								type="text"
+								id="new-order-input"
+								placeholder="Bijv: Bol.com - Muis..."
+							/>
+							<button onclick="addHubItem('orders')">+</button>
+						</div>
+					</div>
+
+					<button class="accordion-btn">🎁 Cadeau Inspiratie</button>
+					<div class="accordion-content">
+						<div id="gifts-list"></div>
+						<div
+							class="inline-add-row"
+							onmousedown="event.stopPropagation()"
+						>
+							<input
+								type="text"
+								id="new-gift-input"
+								placeholder="Bijv: Tom - Boek..."
+							/>
+							<button onclick="addHubItem('gifts')">+</button>
+						</div>
+					</div>
+
+					<button class="accordion-btn">
+						🏪 Winkel-specifieke Lijstjes
+					</button>
+					<div class="accordion-content">
+						<div id="shops-list"></div>
+						<div
+							class="inline-add-row"
+							onmousedown="event.stopPropagation()"
+						>
+							<input
+								type="text"
+								id="new-shop-input"
+								placeholder="Bijv: IKEA - Kussens..."
+							/>
+							<button onclick="addHubItem('shops')">+</button>
+						</div>
+					</div>
+				</div>
+
+				<!-- NIEUW: Thomas's Lijstje Widget -->
+				<div class="card">
+					<h2>👦 Thomas's Lijstje</h2>
+					<p
+						style="
+							font-size: 0.8rem;
+							color: #666;
+							margin: -10px 0 10px 0;
+						"
+					>
+						Parkeer hier taken of spullen voor Thomas zodat je hem
+						niet hoeft te herinneren.
+					</p>
+					<div id="thomas-list"></div>
+					<div
+						class="inline-add-row"
+						onmousedown="event.stopPropagation()"
+					>
+						<input
+							type="text"
+							id="new-thomas-input"
+							placeholder="Bijv: Vuilnis buitenzetten, lamp vervangen..."
+						/>
+						<button onclick="addThomasItem()">+</button>
+					</div>
+				</div>
+
+				<!-- Dagelijkse Gewoontes Widget -->
+				<div class="card">
+					<h2>☀️ Dagelijkse Routines</h2>
+					<div id="habits-list-container"></div>
+					<div
+						class="inline-add-row"
+						style="
+							margin-top: 10px;
+							border-top: 1px dashed #eee;
+							padding-top: 10px;
+						"
+					>
+						<input
+							type="text"
+							id="new-habit-input"
+							placeholder="Nieuwe routine toevoegen..."
+						/>
+						<button onclick="addCustomHabit()">+</button>
+					</div>
+				</div>
+
+				<div class="card" style="padding-bottom: 10px">
+					<h2>🛠️ Snelplanners & Sjablonen</h2>
+
+					<button class="accordion-btn">🔄 Terugkerende Taken</button>
+					<div class="accordion-content">
+						<p
+							style="
+								font-size: 0.8rem;
+								color: #666;
+								margin: 5px 0;
+							"
+						>
+							Stel in welke acties automatisch moeten verschijnen
+							in je dagelijkse to-do's.
+						</p>
+
+						<div
+							class="add-chore-form"
+							style="
+								border-bottom: 1px solid #eee;
+								padding-bottom: 10px;
+								margin-bottom: 10px;
+							"
+						>
+							<input
+								type="text"
+								id="recurring-task-input"
+								placeholder="Bijv: Planten water geven..."
+							/>
+							<div class="add-chore-row">
+								<select
+									id="recurring-period-type"
+									onchange="toggleRecurringSelect()"
+								>
+									<option value="weekly">
+										Elke week op:
+									</option>
+									<option value="biweekly">
+										Om de week op:
+									</option>
+									<option value="monthly">
+										Elke maand op:
+									</option>
+								</select>
+								<select id="recurring-day-select">
+									<option value="1">Maandag</option>
+									<option value="2">Dinsdag</option>
+									<option value="3">Woensdag</option>
+									<option value="4">Donderdag</option>
+									<option value="5">Vrijdag</option>
+									<option value="6">Zaterdag</option>
+									<option value="0">Zondag</option>
+								</select>
+								<select
+									id="recurring-parity-select"
+									style="display: none"
+								>
+									<option value="this">
+										Start deze week
+									</option>
+									<option value="next">
+										Start volgende week
+									</option>
+								</select>
+								<select
+									id="recurring-date-select"
+									style="display: none"
+								></select>
+								<button onclick="addRecurringConfig()">
+									Stel in
+								</button>
+							</div>
+						</div>
+
+						<ul
+							id="recurring-config-list"
+							class="recurring-list"
+						></ul>
+					</div>
+
+					<button class="accordion-btn">📅 Afspraak inplannen</button>
+					<div class="accordion-content">
+						<p
+							style="
+								font-size: 0.8rem;
+								color: #666;
+								margin: 5px 0;
+							"
+						>
+							Kies tijden om direct je agenda te vullen, of maak
+							er een los sleepbaar blokje van.
+						</p>
+						<div class="add-chore-form" style="margin-bottom: 10px">
+							<input
+								type="text"
+								id="temp-appointment-input"
+								placeholder="Bijv: Kapper..."
+							/>
+							<div class="add-chore-row" style="margin-top: 5px">
+								<select
+									id="appointment-start-time"
+									style="flex: 1; font-weight: 600"
+								></select>
+								<select
+									id="appointment-end-time"
+									style="flex: 1; font-weight: 600"
+								></select>
+								<button
+									onclick="bookAppointmentDirect()"
+									style="
+										background-color: var(
+											--appointment-color
+										);
+										color: white;
+										flex: none;
+									"
+								>
+									Plan in
+								</button>
+								<button
+									onclick="createTempAppointment()"
+									style="
+										background-color: #747d8c;
+										color: white;
+										flex: none;
+									"
+								>
+									Blokje
+								</button>
+							</div>
+						</div>
+						<div
+							id="temp-appointments-container"
+							class="chip-container"
+						></div>
+					</div>
+
+					<button class="accordion-btn">💼 Werkdagen</button>
+					<div class="accordion-content">
+						<button
+							class="btn-workblock"
+							onclick="blockWorkDay('thuis')"
+						>
+							🏠 Vul hele dag in: Thuiswerk (Medium Focus)
+						</button>
+						<button
+							class="btn-workblock"
+							onclick="blockWorkDay('kantoor')"
+						>
+							🏢 Vul hele dag in: Kantoor (Hoge Focus)
+						</button>
+					</div>
+
+					<button class="accordion-btn">
+						🔋 Vrije Energieblokken
+					</button>
+					<div class="accordion-content">
+						<p
+							style="
+								font-size: 0.8rem;
+								color: #666;
+								margin: 5px 0;
+							"
+						>
+							Sleep een blanco focus-blok naar je planning en vul
+							later de tekst in.
+						</p>
+						<div class="chip-container">
+							<div
+								class="draggable-chip chip-high"
+								draggable="true"
+								ondragstart="
+									dragNewTask(
+										event,
+										'🔥 Hoge Focus',
+										'high',
+										'energy',
+									)
+								"
+							>
+								🔥 Hoge Focus
+							</div>
+							<div
+								class="draggable-chip chip-medium"
+								draggable="true"
+								ondragstart="
+									dragNewTask(
+										event,
+										'⚡ Medium Focus',
+										'medium',
+										'energy',
+									)
+								"
+							>
+								⚡ Medium Focus
+							</div>
+							<div
+								class="draggable-chip chip-low"
+								draggable="true"
+								ondragstart="
+									dragNewTask(
+										event,
+										'🌿 Opladen',
+										'low',
+										'energy',
+									)
+								"
+							>
+								🌿 Opladen
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card" style="padding-bottom: 10px">
+					<h2>🗂️ Mijn Categorieën</h2>
+					<div id="dynamic-categories"></div>
+
+					<div class="stats" id="focus-warning">
+						<div
+							style="
+								display: flex;
+								align-items: center;
+								gap: 12px;
+							"
+						>
+							<div class="battery-shape">
+								<div id="battery-bar" class="battery-bar"></div>
+							</div>
+							<div
+								style="
+									font-size: 1.1rem;
+									font-weight: bold;
+									color: var(--text-color);
+								"
+								id="battery-level-text"
+							>
+								70%
+							</div>
+						</div>
+						<div class="battery-text" id="battery-advice">
+							Energie-balans berekenen...
+						</div>
+					</div>
+				</div>
+
+				<!-- Snel Kladblok Widget -->
+				<div class="card">
+					<h2>📝 Snel Kladblok</h2>
+					<textarea
+						class="scratchpad-textarea"
+						id="dashboard-scratchpad"
+						placeholder="Typ hier losse aantekeningen, telefoonnummers of linkjes..."
+						oninput="saveScratchpad()"
+					></textarea>
+				</div>
+
+				<div class="card">
+					<h2>💾 Data Beheer (Telefoon Sync)</h2>
+					<button class="btn-data" onclick="exportData()">
+						📤 Sla planning op (Exporteer)
+					</button>
+					<p
+						style="
+							font-size: 0.8rem;
+							color: #666;
+							margin: 10px 0 5px 0;
+						"
+					>
+						Laad een opgeslagen planning in:
+					</p>
+					<input
+						type="file"
+						id="importFile"
+						onchange="importData(event)"
+						style="font-size: 0.8rem; width: 100%"
+					/>
+				</div>
+			</div>
+
+			<div class="timeline-section">
+				<div class="timeline-header">
+					<h2 id="selected-date-title" class="date-title">
+						Selecteer een datum
+					</h2>
+
+					<div class="header-actions">
+						<div class="view-toggle">
+							<button
+								id="btn-view-daily"
+								class="active"
+								onclick="switchView('daily')"
+							>
+								Dag
+							</button>
+							<button
+								id="btn-view-weekly"
+								onclick="switchView('weekly')"
+							>
+								Week
+							</button>
+							<button
+								id="btn-view-analysis"
+								onclick="switchView('analysis')"
+							>
+								Analyse
+							</button>
+						</div>
+						<button class="btn-clear" onclick="clearDay()">
+							Leegmaken
+						</button>
+					</div>
+				</div>
+
+				<div id="daily-container">
+					<div class="task-lists-container">
+						<div class="todo-section goals-section">
+							<h3>🎯 Wekelijkse Doelen</h3>
+							<p
+								style="
+									font-size: 0.8rem;
+									color: #888;
+									margin-top: -8px;
+									margin-bottom: 10px;
+								"
+							>
+								Wordt gedeeld over de hele week. Typ aantal om
+								te turven.
+							</p>
+							<ul id="weekly-goals" class="todo-list"></ul>
+							<div class="todo-input-group">
+								<input
+									type="text"
+									id="new-goal-input"
+									placeholder="Bijv: Wandelen"
+								/>
+								<input
+									type="number"
+									id="new-goal-target"
+									min="1"
+									max="99"
+									value="1"
+									title="Hoe vaak per week?"
+								/>
+								<button onclick="addWeeklyGoal()">+</button>
+							</div>
+						</div>
+
+						<div
+							class="todo-section"
+							ondragover="dragOver(event)"
+							ondragenter="dragEnter(event)"
+							ondragleave="dragLeave(event)"
+							ondrop="dropToTodo(event)"
+						>
+							<h3>✅ Dagelijkse To-Do's</h3>
+							<p
+								style="
+									font-size: 0.8rem;
+									color: #888;
+									margin-top: -8px;
+									margin-bottom: 10px;
+								"
+							>
+								Sleep chips hierheen om toe te voegen, of pak ze
+								hier op om in te plannen!
+							</p>
+							<ul id="daily-todos" class="todo-list"></ul>
+							<div class="todo-input-group">
+								<input
+									type="text"
+									id="new-todo-input"
+									placeholder="Bijv: Mail versturen"
+								/>
+								<button onclick="addDailyTodo()">+</button>
+							</div>
+						</div>
+
+						<div class="todo-section braindump-section">
+							<h3>🧠 Hersenspinsels</h3>
+							<p
+								style="
+									font-size: 0.8rem;
+									color: #888;
+									margin-top: -8px;
+									margin-bottom: 10px;
+								"
+							>
+								Hoofd leegmaken. Verplaats later met &#10140;.
+							</p>
+							<ul id="brain-dump" class="todo-list"></ul>
+							<div class="todo-input-group">
+								<input
+									type="text"
+									id="new-brain-input"
+									placeholder="Los idee of herinnering..."
+								/>
+								<button onclick="addBrainDump()">+</button>
+							</div>
+						</div>
+					</div>
+
+					<p
+						style="
+							font-size: 0.85rem;
+							color: #888;
+							margin-bottom: 20px;
+						"
+					>
+						💡
+						<em
+							>Sleep acties links naar de blocks hieronder. Klik
+							op
+							<strong style="color: #0984e3">&#8595;</strong> om
+							een geplande activiteit direct naar beneden door te
+							trekken!</em
+						>
+					</p>
+
+					<div id="timeline-container"></div>
+				</div>
+
+				<div id="weekly-container" style="display: none">
+					<div id="weekly-grid-container"></div>
+				</div>
+
+				<!-- Container voor het Wekelijkse Leefstijl Analyserapport -->
+				<div id="analysis-container" style="display: none">
+					<p
+						style="
+							font-size: 0.9rem;
+							color: #636e72;
+							margin-bottom: 20px;
+						"
+					>
+						📊 Dit diagram berekent de werkelijke uren die je deze
+						week in je planning hebt gezet per categorie. Ideaal om
+						te zien waar je leefstijl aanpassingen kunt maken!
+					</p>
+					<div id="analysis-report-box"></div>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			let currentDate = new Date();
+			let selectedDateStr = formatDate(currentDate);
+			let currentView = "daily";
+
+			let appData = {};
+			try {
+				appData =
+					JSON.parse(localStorage.getItem("ultimateLifeDashboard")) ||
+					{};
+			} catch (e) {
+				appData = {};
+			}
+			if (!appData || typeof appData !== "object") appData = {};
+			if (!appData.weeklyGoals || typeof appData.weeklyGoals !== "object")
+				appData.weeklyGoals = {};
+			if (
+				!appData.recurringTasksConfig ||
+				typeof appData.recurringTasksConfig !== "object"
+			)
+				appData.recurringTasksConfig = {
+					weekly: {},
+					monthly: {},
+					biweekly: {},
+				};
+			if (!appData.recurringTasksConfig.biweekly)
+				appData.recurringTasksConfig.biweekly = {};
+			if (!appData.brainDump || !Array.isArray(appData.brainDump))
+				appData.brainDump = [];
+
+			if (!appData.habitsConfig || !Array.isArray(appData.habitsConfig)) {
+				appData.habitsConfig = [
+					"💧 2L Water Drinken",
+					"💊 Vitamines Innemen",
+					"📖 10 Pagina's Lezen",
+					"🏃‍♂️ 20 Minuten Bewegen",
+				];
+			}
+
+			if (!appData.hubData || typeof appData.hubData !== "object") {
+				appData.hubData = { orders: [], gifts: [], shops: [] };
+			}
+
+			// NIEUW: Initialisatie van de dataset voor Thomas
+			if (!appData.thomasData || !Array.isArray(appData.thomasData)) {
+				appData.thomasData = [];
+			}
+
+			// Timer Variabelen
+			let timerInterval = null;
+			let timerTimeLeft = 1500;
+			let isTimerRunning = false;
+
+			const timeSlots = [
+				"07:00",
+				"08:00",
+				"09:00",
+				"10:00",
+				"11:00",
+				"12:00",
+				"13:00",
+				"14:00",
+				"15:00",
+				"16:00",
+				"17:00",
+				"17:15",
+				"17:30",
+				"17:45",
+				"18:00",
+				"18:15",
+				"18:30",
+				"18:45",
+				"19:00",
+				"19:15",
+				"19:30",
+				"19:45",
+				"20:00",
+				"20:15",
+				"20:30",
+				"20:45",
+				"21:00",
+				"21:15",
+				"21:30",
+				"21:45",
+				"22:00",
+				"22:15",
+				"22:30",
+				"22:45",
+				"23:00",
+			];
+
+			const categoryLabels = {
+				admin: "📄 Administratie",
+				shopping: "🛒 Boodschappen",
+				projects: "🎯 Doelen & Projecten",
+				family: "👨‍👩‍👧 Familie & Relaties",
+				finance: "💰 Financiën",
+				health: "🍎 Gezondheid",
+				hobbies: "🎨 Hobby’s",
+				house: "🏡 Huis & Onderhoud",
+				chore: "🧹 Huishouden",
+				relax: "🧘‍♂️ Ontspanning",
+				personal_dev: "🌱 Persoonlijke ontwikkeling",
+				personal_care: "🧴 Persoonlijke verzorging",
+				private_appt: "📅 Privé Afspraken",
+				social: "🥂 Sociaal",
+				sport: "🏋️‍♂️ Sporten",
+				vacation: "✈️ Vakantie & Uitjes",
+				transport: "🚗 Vervoer & Auto",
+				work_study: "💼 Werkdagen",
+				overig: "❓ Overig / Handmatig",
+				energy: "🔋 Blanco Focusblok",
+			};
+
+			// Standaard menu-datasets (Alfabetisch)
+			const defaultAdmin = {
+				items: [
+					{ text: "Post sorteren", energy: "low" },
+					{ text: "Administratie bijwerken", energy: "high" },
+				],
+			};
+			const defaultShopping = {
+				items: [
+					{ text: "Boodschappen doen", energy: "medium" },
+					{ text: "Lijstje maken", energy: "low" },
+				],
+			};
+			const defaultProjects = {
+				items: [
+					{ text: "Project planning", energy: "high" },
+					{ text: "Groot project uitwerken", energy: "high" },
+				],
+			};
+			const defaultFamily = {
+				items: [
+					{ text: "Quality time gezin", energy: "medium" },
+					{ text: "Familie bellen", energy: "medium" },
+				],
+			};
+			const defaultFinance = {
+				items: [
+					{ text: "Rekeningen betalen", energy: "medium" },
+					{ text: "Budget checken", energy: "medium" },
+				],
+			};
+			const defaultHealth = {
+				items: [
+					{ text: "Wandelen", energy: "low" },
+					{ text: "Medicatie innemen", energy: "low" },
+					{ text: "Mediteren", energy: "low" },
+				],
+			};
+			const defaultHobbies = {
+				items: [
+					{ text: "Knutselen / Creatief", energy: "low" },
+					{ text: "Muziek maken", energy: "medium" },
+				],
+			};
+			const defaultHouse = {
+				items: [
+					{ text: "Klusje in huis", energy: "medium" },
+					{ text: "Tuinieren", energy: "medium" },
+				],
+			};
+			const defaultChore = {
+				items: [
+					{ text: "15 min opruimen", energy: "medium" },
+					{ text: "Wassen / Strijken", energy: "medium" },
+					{ text: "Schoonmaken", energy: "high" },
+				],
+			};
+			const defaultRelax = {
+				items: [
+					{ text: "Film of serie kijken", energy: "low" },
+					{ text: "Lekker bankhangen", energy: "low" },
+					{ text: "Puzzelen", energy: "low" },
+				],
+			};
+			const defaultPersonalDev = {
+				items: [
+					{ text: "Boek lezen", energy: "low" },
+					{ text: "Cursus volgen", energy: "high" },
+				],
+			};
+			const defaultPersonalCare = {
+				items: [
+					{ text: "Skincare routine", energy: "low" },
+					{ text: "Scheren / Kapper", energy: "low" },
+					{ text: "Warm bad nemen", energy: "low" },
+				],
+			};
+			const defaultPrivateAppt = {
+				items: [
+					{ text: "Tandarts", energy: "medium" },
+					{ text: "Kapper", energy: "low" },
+				],
+			};
+			const defaultSocial = {
+				items: [
+					{ text: "Uit eten", energy: "medium" },
+					{ text: "Borrel", energy: "medium" },
+					{ text: "Vrienden afspraak", energy: "medium" },
+				],
+			};
+			const defaultSport = {
+				items: [
+					{ text: "Hardlopen", energy: "high" },
+					{ text: "Sportschool", energy: "high" },
+					{ text: "Yoga", energy: "low" },
+				],
+			};
+			const defaultVacation = {
+				items: [
+					{ text: "Reis plannen", energy: "medium" },
+					{ text: "Dagje weg", energy: "medium" },
+				],
+			};
+			const defaultTransport = {
+				items: [
+					{ text: "Auto tanken / laden", energy: "low" },
+					{ text: "Reistijd", energy: "low" },
+				],
+			};
+			const defaultWorkStudy = {
+				items: [
+					{ text: "Werken", energy: "high" },
+					{ text: "Studeren", energy: "high" },
+					{ text: "E-mails beantwoorden", energy: "medium" },
+				],
+			};
+
+			function safeLoadMenu(key, fallback) {
+				try {
+					let data = JSON.parse(localStorage.getItem(key));
+					if (data && data.items && Array.isArray(data.items)) {
+						let validatedItems = data.items.filter(
+							(i) => i && typeof i === "object" && i.text,
+						);
+						if (
+							validatedItems.length > 0 ||
+							data.items.length === 0
+						)
+							return { items: validatedItems };
+					}
+					return fallback;
+				} catch (e) {
+					return fallback;
+				}
+			}
+
+			let adminTasks = safeLoadMenu("catAdmin", defaultAdmin);
+			let shoppingTasks = safeLoadMenu("catShopping", defaultShopping);
+			let projectsTasks = safeLoadMenu("catProjects", defaultProjects);
+			let familyTasks = safeLoadMenu("catFamily", defaultFamily);
+			let financeTasks = safeLoadMenu("catFinance", defaultFinance);
+			let healthTasks = safeLoadMenu("catHealth", defaultHealth);
+			let hobbiesTasks = safeLoadMenu("catHobbies", defaultHobbies);
+			let houseTasks = safeLoadMenu("catHouse", defaultHouse);
+			let choreTasks = safeLoadMenu("catChore", defaultChore);
+			let relaxTasks = safeLoadMenu("catRelax", defaultRelax);
+			let personalDevTasks = safeLoadMenu(
+				"catPersonalDev",
+				defaultPersonalDev,
+			);
+			let personalCareTasks = safeLoadMenu(
+				"catPersonalCare",
+				defaultPersonalCare,
+			);
+			let privateApptTasks = safeLoadMenu(
+				"catPrivateAppt",
+				defaultPrivateAppt,
+			);
+			let socialTasks = safeLoadMenu("catSocial", defaultSocial);
+			let sportTasks = safeLoadMenu("catSport", defaultSport);
+			let vacationTasks = safeLoadMenu("catVacation", defaultVacation);
+			let transportTasks = safeLoadMenu("catTransport", defaultTransport);
+			let workStudyTasks = safeLoadMenu("catWorkStudy", defaultWorkStudy);
+
+			const monthNames = [
+				"Januari",
+				"Februari",
+				"Maart",
+				"April",
+				"Mei",
+				"Juni",
+				"Juli",
+				"Augustus",
+				"September",
+				"Oktober",
+				"November",
+				"December",
+			];
+			const dayNamesShort = ["Zo", "Ma", "Di", "Wo", "Do", "Vr", "Za"];
+			const fullDayNames = [
+				"Zondag",
+				"Maandag",
+				"Dinsdag",
+				"Woensdag",
+				"Donderdag",
+				"Vrijdag",
+				"Zaterdag",
+			];
+
+			const colors = {
+				high: "var(--high-color)",
+				medium: "var(--medium-color)",
+				low: "var(--low-color)",
+				appointment: "var(--appointment-color)",
+				empty: "var(--empty-color)",
+			};
+			const textColors = {
+				high: "white",
+				medium: "#2d3436",
+				low: "#2d3436",
+				appointment: "white",
+				empty: "#a4b0be",
+			};
+
+			const storageKeysMapping = {
+				admin: "catAdmin",
+				shopping: "catShopping",
+				projects: "catProjects",
+				family: "catFamily",
+				finance: "catFinance",
+				health: "catHealth",
+				hobbies: "catHobbies",
+				house: "catHouse",
+				chore: "catChore",
+				relax: "catRelax",
+				personal_dev: "catPersonalDev",
+				personal_care: "catPersonalCare",
+				private_appt: "catPrivateAppt",
+				social: "catSocial",
+				sport: "catSport",
+				vacation: "catVacation",
+				transport: "catTransport",
+				work_study: "catWorkStudy",
+			};
+
+			function getDataset(category) {
+				if (category === "admin") return adminTasks;
+				if (category === "shopping") return shoppingTasks;
+				if (category === "projects") return projectsTasks;
+				if (category === "family") return familyTasks;
+				if (category === "finance") return financeTasks;
+				if (category === "health") return healthTasks;
+				if (category === "hobbies") return hobbiesTasks;
+				if (category === "house") return houseTasks;
+				if (category === "chore") return choreTasks;
+				if (category === "relax") return relaxTasks;
+				if (category === "personal_dev") return personalDevTasks;
+				if (category === "personal_care") return personalCareTasks;
+				if (category === "private_appt") return privateApptTasks;
+				if (category === "social") return socialTasks;
+				if (category === "sport") return sportTasks;
+				if (category === "vacation") return vacationTasks;
+				if (category === "transport") return transportTasks;
+				if (category === "work_study") return workStudyTasks;
+				return null;
+			}
+
+			function init() {
+				document
+					.getElementById("new-goal-input")
+					.addEventListener("keypress", function (e) {
+						if (e.key === "Enter") addWeeklyGoal();
+					});
+				document
+					.getElementById("new-todo-input")
+					.addEventListener("keypress", function (e) {
+						if (e.key === "Enter") addDailyTodo();
+					});
+				document
+					.getElementById("temp-appointment-input")
+					.addEventListener("keypress", function (e) {
+						if (e.key === "Enter") createTempAppointment();
+					});
+				document
+					.getElementById("recurring-task-input")
+					.addEventListener("keypress", function (e) {
+						if (e.key === "Enter") addRecurringConfig();
+					});
+				document
+					.getElementById("new-brain-input")
+					.addEventListener("keypress", function (e) {
+						if (e.key === "Enter") addBrainDump();
+					});
+				document
+					.getElementById("new-habit-input")
+					.addEventListener("keypress", function (e) {
+						if (e.key === "Enter") addCustomHabit();
+					});
+
+				document
+					.getElementById("new-order-input")
+					.addEventListener("keypress", function (e) {
+						if (e.key === "Enter") addHubItem("orders");
+					});
+				document
+					.getElementById("new-gift-input")
+					.addEventListener("keypress", function (e) {
+						if (e.key === "Enter") addHubItem("gifts");
+					});
+				document
+					.getElementById("new-shop-input")
+					.addEventListener("keypress", function (e) {
+						if (e.key === "Enter") addHubItem("shops");
+					});
+				// NIEUW: Enter triggers koppelen aan Thomas's invoerveld
+				document
+					.getElementById("new-thomas-input")
+					.addEventListener("keypress", function (e) {
+						if (e.key === "Enter") addThomasItem();
+					});
+
+				const dateSelect = document.getElementById(
+					"recurring-date-select",
+				);
+				if (dateSelect && dateSelect.innerHTML === "") {
+					for (let i = 1; i <= 31; i++)
+						dateSelect.innerHTML += `<option value="${i}">${i}e van de maand</option>`;
+				}
+				ensureDataForDate(selectedDateStr);
+				renderSidebarCategories();
+				setupAccordions();
+				renderCalendar();
+				renderRecurringConfigList();
+				populateAppointmentTimes();
+				loadScratchpad();
+				selectDate(currentDate);
+			}
+
+			function populateAppointmentTimes() {
+				const startSelect = document.getElementById(
+					"appointment-start-time",
+				);
+				const endSelect = document.getElementById(
+					"appointment-end-time",
+				);
+				if (!startSelect || !endSelect) return;
+				startSelect.innerHTML = '<option value="">Van...</option>';
+				endSelect.innerHTML = '<option value="">Tot...</option>';
+				timeSlots.forEach((slot) => {
+					startSelect.innerHTML += `<option value="${slot}">${slot}</option>`;
+					endSelect.innerHTML += `<option value="${slot}">${slot}</option>`;
+				});
+			}
+
+			function formatDate(date) {
+				return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+			}
+
+			function getMonday(dateStr) {
+				const parts = dateStr.split("-");
+				const d = new Date(parts[0], parts[1] - 1, parts[2]);
+				const day = d.getDay() || 7;
+				d.setDate(d.getDate() - day + 1);
+				return formatDate(d);
+			}
+
+			function getWeekParity(dateObj) {
+				var d = new Date(
+					Date.UTC(
+						dateObj.getFullYear(),
+						dateObj.getMonth(),
+						dateObj.getDate(),
+					),
+				);
+				var dayNum = d.getUTCDay() || 7;
+				d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+				var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+				var weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+				return weekNo % 2;
+			}
+
+			function toggleRecurringSelect() {
+				const type = document.getElementById(
+					"recurring-period-type",
+				).value;
+				document.getElementById("recurring-day-select").style.display =
+					type === "weekly" || type === "biweekly" ?
+						"inline-block"
+					:	"none";
+				document.getElementById(
+					"recurring-parity-select",
+				).style.display = type === "biweekly" ? "inline-block" : "none";
+				document.getElementById("recurring-date-select").style.display =
+					type === "monthly" ? "inline-block" : "none";
+			}
+
+			function addRecurringConfig() {
+				const input = document.getElementById("recurring-task-input");
+				const type = document.getElementById(
+					"recurring-period-type",
+				).value;
+				const text = input.value.trim();
+				if (text === "") return;
+
+				if (type === "weekly") {
+					const day = document.getElementById(
+						"recurring-day-select",
+					).value;
+					if (!appData.recurringTasksConfig.weekly[day])
+						appData.recurringTasksConfig.weekly[day] = [];
+					appData.recurringTasksConfig.weekly[day].push(text);
+				} else if (type === "biweekly") {
+					const day = document.getElementById(
+						"recurring-day-select",
+					).value;
+					const parityChoice = document.getElementById(
+						"recurring-parity-select",
+					).value;
+					const parts = selectedDateStr.split("-");
+					const viewedDate = new Date(
+						parts[0],
+						parts[1] - 1,
+						parts[2],
+					);
+					let currentParity = getWeekParity(viewedDate);
+					let targetParity =
+						parityChoice === "this" ? currentParity : (
+							(currentParity + 1) % 2
+						);
+					const key = targetParity + "-" + day;
+					if (!appData.recurringTasksConfig.biweekly[key])
+						appData.recurringTasksConfig.biweekly[key] = [];
+					appData.recurringTasksConfig.biweekly[key].push(text);
+				} else {
+					const date = document.getElementById(
+						"recurring-date-select",
+					).value;
+					if (!appData.recurringTasksConfig.monthly[date])
+						appData.recurringTasksConfig.monthly[date] = [];
+					appData.recurringTasksConfig.monthly[date].push(text);
+				}
+				input.value = "";
+				saveData();
+				renderRecurringConfigList();
+			}
+
+			function renderRecurringConfigList() {
+				const list = document.getElementById("recurring-config-list");
+				if (!list) return;
+				list.innerHTML = "";
+				for (let day in appData.recurringTasksConfig.weekly) {
+					appData.recurringTasksConfig.weekly[day].forEach(
+						(task, index) => {
+							list.innerHTML += `<li class="recurring-item"><span>📅 <strong>Elke week (${fullDayNames[day]})</strong>: ${task}</span><span class="chip-delete-btn" onclick="deleteRecurringConfig('weekly', '${day}', ${index})">&#10005;</span></li>`;
+						},
+					);
+				}
+				if (appData.recurringTasksConfig.biweekly) {
+					for (let key in appData.recurringTasksConfig.biweekly) {
+						const parts = key.split("-");
+						const parity = parts[0];
+						const day = parts[1];
+						appData.recurringTasksConfig.biweekly[key].forEach(
+							(task, index) => {
+								list.innerHTML += `<li class="recurring-item"><span>🔄 <strong>Om de week (${fullDayNames[day]}, Weken ${parity === "0" ? "A" : "B"})</strong>: ${task}</span><span class="chip-delete-btn" onclick="deleteRecurringConfig('biweekly', '${key}', ${index})">&#10005;</span></li>`;
+							},
+						);
+					}
+				}
+				for (let date in appData.recurringTasksConfig.monthly) {
+					appData.recurringTasksConfig.monthly[date].forEach(
+						(task, index) => {
+							list.innerHTML += `<li class="recurring-item"><span>🗓️ <strong>Elke maand (${date}e dag)</strong>: ${task}</span><span class="chip-delete-btn" onclick="deleteRecurringConfig('monthly', '${date}', ${index})">&#10005;</span></li>`;
+						},
+					);
+				}
+			}
+
+			function deleteRecurringConfig(type, key, index) {
+				appData.recurringTasksConfig[type][key].splice(index, 1);
+				saveData();
+				renderRecurringConfigList();
+			}
+
+			function ensureDataForDate(dateStr) {
+				if (!appData[dateStr] || typeof appData[dateStr] !== "object")
+					appData[dateStr] = { blocks: {}, todos: [], habits: {} };
+				if (
+					!appData[dateStr].blocks ||
+					typeof appData[dateStr].blocks !== "object"
+				)
+					appData[dateStr].blocks = {};
+				if (
+					!appData[dateStr].todos ||
+					!Array.isArray(appData[dateStr].todos)
+				)
+					appData[dateStr].todos = [];
+				if (
+					!appData[dateStr].habits ||
+					typeof appData[dateStr].habits !== "object"
+				)
+					appData[dateStr].habits = {};
+
+				// Bakje voor openstaande taken uit het verleden
+				let todayStr = formatDate(new Date());
+				if (dateStr === todayStr && !appData[dateStr].rolloverApplied) {
+					Object.keys(appData).forEach((pastDate) => {
+						if (
+							pastDate.match(/^\d{4}-\d{2}-\d{2}$/) &&
+							pastDate < todayStr
+						) {
+							if (
+								appData[pastDate].todos &&
+								Array.isArray(appData[pastDate].todos)
+							) {
+								let unfinished = appData[pastDate].todos.filter(
+									(t) => !t.checked,
+								);
+								unfinished.forEach((task) => {
+									let cleanText =
+										task.text.startsWith("⏳ ") ?
+											task.text
+										:	"⏳ " + task.text;
+									if (
+										!appData[dateStr].todos.some(
+											(t) =>
+												t.text === cleanText ||
+												t.text === task.text,
+										)
+									) {
+										appData[dateStr].todos.push({
+											text: cleanText,
+											checked: false,
+										});
+									}
+								});
+								appData[pastDate].todos = appData[
+									pastDate
+								].todos.filter((t) => t.checked);
+							}
+						}
+					});
+					appData[dateStr].rolloverApplied = true;
+					saveData();
+				}
+
+				if (!appData[dateStr].recurringApplied) {
+					const parts = dateStr.split("-");
+					const d = new Date(parts[0], parts[1] - 1, parts[2]);
+					const dayOfWeek = d.getDay();
+					const dayOfMonth = d.getDate();
+					if (appData.recurringTasksConfig.weekly[dayOfWeek]) {
+						appData.recurringTasksConfig.weekly[dayOfWeek].forEach(
+							(task) => {
+								if (
+									!appData[dateStr].todos.some(
+										(t) => t.text === task,
+									)
+								)
+									appData[dateStr].todos.push({
+										text: task,
+										checked: false,
+									});
+							},
+						);
+					}
+					const currentParity = getWeekParity(d);
+					const biweeklyKey = currentParity + "-" + dayOfWeek;
+					if (
+						appData.recurringTasksConfig.biweekly &&
+						appData.recurringTasksConfig.biweekly[biweeklyKey]
+					) {
+						appData.recurringTasksConfig.biweekly[
+							biweeklyKey
+						].forEach((task) => {
+							if (
+								!appData[dateStr].todos.some(
+									(t) => t.text === task,
+								)
+							)
+								appData[dateStr].todos.push({
+									text: task,
+									checked: false,
+								});
+						});
+					}
+					if (appData.recurringTasksConfig.monthly[dayOfMonth]) {
+						appData.recurringTasksConfig.monthly[
+							dayOfMonth
+						].forEach((task) => {
+							if (
+								!appData[dateStr].todos.some(
+									(t) => t.text === task,
+								)
+							)
+								appData[dateStr].todos.push({
+									text: task,
+									checked: false,
+								});
+						});
+					}
+					appData[dateStr].recurringApplied = true;
+					saveData();
+				}
+
+				for (let key in appData[dateStr].blocks) {
+					if (typeof appData[dateStr].blocks[key] === "string") {
+						appData[dateStr].blocks[key] = {
+							task: appData[dateStr].blocks[key],
+							energy: "appointment",
+							category: "private_appt",
+						};
+					}
+					if (!appData[dateStr].blocks[key].category) {
+						appData[dateStr].blocks[key].category = "overig";
+					}
+				}
+			}
+
+			function bookAppointmentDirect() {
+				const input = document.getElementById("temp-appointment-input");
+				const text = input.value.trim();
+				const startSelect = document.getElementById(
+					"appointment-start-time",
+				);
+				const endSelect = document.getElementById(
+					"appointment-end-time",
+				);
+				if (text === "") {
+					alert("Vul eerst een afspraaknaam in.");
+					return;
+				}
+				const startTime = startSelect.value;
+				const endTime = endSelect.value;
+				if (!startTime || !endTime) {
+					alert("Selecteer zowel een van- als tot-tijd.");
+					return;
+				}
+				const startIndex = timeSlots.indexOf(startTime);
+				const endIndex = timeSlots.indexOf(endTime);
+				if (
+					startIndex === -1 ||
+					endIndex === -1 ||
+					startIndex >= endIndex
+				) {
+					alert("De eindtijd moet ná de starttijd liggen.");
+					return;
+				}
+
+				ensureDataForDate(selectedDateStr);
+				for (let i = startIndex; i < endIndex; i++) {
+					appData[selectedDateStr].blocks[timeSlots[i]] = {
+						task: "📅 " + text,
+						energy: "appointment",
+						category: "private_appt",
+					};
+				}
+				input.value = "";
+				startSelect.value = "";
+				endSelect.value = "";
+				saveData();
+				updateViews();
+				renderCalendar();
+			}
+
+			function createTempAppointment() {
+				const input = document.getElementById("temp-appointment-input");
+				const text = input.value.trim();
+				if (text !== "") {
+					const container = document.getElementById(
+						"temp-appointments-container",
+					);
+					const safeTask = text
+						.replace(/'/g, "\\'")
+						.replace(/"/g, "&quot;");
+					const chipDiv = document.createElement("div");
+					chipDiv.className = "draggable-chip chip-appointment";
+					chipDiv.setAttribute("draggable", "true");
+					chipDiv.setAttribute(
+						"ondragstart",
+						`dragNewTask(event, '${safeTask}', 'appointment', 'private_appt')`,
+					);
+					chipDiv.innerHTML = `<span>${text}</span> <span class="chip-delete-btn" onclick="this.parentElement.remove()">&#10005;</span>`;
+					container.appendChild(chipDiv);
+					input.value = "";
+				}
+			}
+
+			function setupAccordions() {
+				const acc = document.getElementsByClassName("accordion-btn");
+				for (let i = 0; i < acc.length; i++) {
+					let clone = acc[i].cloneNode(true);
+					acc[i].parentNode.replaceChild(clone, acc[i]);
+				}
+				const newAcc = document.getElementsByClassName("accordion-btn");
+				for (let i = 0; i < newAcc.length; i++) {
+					newAcc[i].addEventListener("click", function () {
+						this.classList.toggle("active");
+						const panel = this.nextElementSibling;
+						if (panel.style.maxHeight) {
+							panel.style.maxHeight = null;
+							panel.classList.remove("show");
+						} else {
+							panel.style.maxHeight = panel.scrollHeight + "px";
+							panel.classList.add("show");
+						}
+					});
+				}
+			}
+
+			function renderSidebarCategories(openKey = null) {
+				const container = document.getElementById("dynamic-categories");
+				if (!container) return;
+				container.innerHTML = "";
+				const createCategoryHTML = (title, dataObj, categoryKey) => {
+					let html = `<button class="accordion-btn" data-key="${categoryKey}">${title}</button><div class="accordion-content"><div class="chip-container"><div class="chip-container">`;
+					if (dataObj && dataObj.items) {
+						dataObj.items.forEach((item, index) => {
+							if (item && item.text) {
+								const safeTask = item.text
+									.replace(/'/g, "\\'")
+									.replace(/"/g, "&quot;");
+								html += `<div class="draggable-chip chip-${item.energy || "medium"}" draggable="true" ondragstart="dragNewTask(event, '${safeTask}', '${item.energy || "medium"}', '${categoryKey}')">
+                                <span>${item.text}</span><span class="chip-delete-btn" onmousedown="event.stopPropagation()" onclick="deleteSidebarTask('${categoryKey}', ${index})">&#10005;</span></div>`;
+							}
+						});
+					}
+					html += `</div>
+                    <div class="inline-add-row" onmousedown="event.stopPropagation()">
+                        <input type="text" id="inline-input-${categoryKey}" placeholder="Snel actie toevoegen..." onkeydown="if(event.key === 'Enter') addInlineTask('${categoryKey}')">
+                        <select id="inline-energy-${categoryKey}">
+                            <option value="high" title="Hoge Focus">🔥</option>
+                            <option value="medium" selected title="Medium Focus">⚡</option>
+                            <option value="low" title="Opladen">🌿</option>
+                        </select>
+                        <button onclick="addInlineTask('${categoryKey}')">+</button>
+                    </div>
+                </div>`;
+					return html;
+				};
+
+				container.innerHTML += createCategoryHTML(
+					"📄 Administratie",
+					adminTasks,
+					"admin",
+				);
+				container.innerHTML += createCategoryHTML(
+					"🛒 Boodschappen & Winkelen",
+					shoppingTasks,
+					"shopping",
+				);
+				container.innerHTML += createCategoryHTML(
+					"🎯 Doelen & Projecten",
+					projectsTasks,
+					"projects",
+				);
+				container.innerHTML += createCategoryHTML(
+					"👨‍👩‍👧 Familie & Relaties",
+					familyTasks,
+					"family",
+				);
+				container.innerHTML += createCategoryHTML(
+					"💰 Financiën",
+					financeTasks,
+					"finance",
+				);
+				container.innerHTML += createCategoryHTML(
+					"🍎 Gezondheid & Welzijn",
+					healthTasks,
+					"health",
+				);
+				container.innerHTML += createCategoryHTML(
+					"🎨 Hobby’s & Creativiteit",
+					hobbiesTasks,
+					"hobbies",
+				);
+				container.innerHTML += createCategoryHTML(
+					"🏡 Huis & Onderhoud",
+					houseTasks,
+					"house",
+				);
+				container.innerHTML += createCategoryHTML(
+					"🧹 Huishouden",
+					choreTasks,
+					"chore",
+				);
+				container.innerHTML += createCategoryHTML(
+					"🧘‍♂️ Ontspanning",
+					relaxTasks,
+					"relax",
+				);
+				container.innerHTML += createCategoryHTML(
+					"🌱 Persoonlijke ontwikkeling",
+					personalDevTasks,
+					"personal_dev",
+				);
+				container.innerHTML += createCategoryHTML(
+					"🧴 Persoonlijke verzorging",
+					personalCareTasks,
+					"personal_care",
+				);
+				container.innerHTML += createCategoryHTML(
+					"📅 Privé Afspraken",
+					privateApptTasks,
+					"private_appt",
+				);
+				container.innerHTML += createCategoryHTML(
+					"🥂 Sociaal",
+					socialTasks,
+					"social",
+				);
+				container.innerHTML += createCategoryHTML(
+					"🏋️‍♂️ Sporten",
+					sportTasks,
+					"sport",
+				);
+				container.innerHTML += createCategoryHTML(
+					"✈️ Vakantie & Uitjes",
+					vacationTasks,
+					"vacation",
+				);
+				container.innerHTML += createCategoryHTML(
+					"🚗 Vervoer & Auto",
+					transportTasks,
+					"transport",
+				);
+				container.innerHTML += createCategoryHTML(
+					"💼 Werk / Studie",
+					workStudyTasks,
+					"work_study",
+				);
+
+				setupAccordions();
+
+				if (openKey) {
+					const btn = document.querySelector(
+						`.accordion-btn[data-key="${openKey}"]`,
+					);
+					if (btn) {
+						btn.classList.add("active");
+						const panel = btn.nextElementSibling;
+						panel.style.maxHeight = panel.scrollHeight + "px";
+						panel.classList.add("show");
+					}
+				}
+			}
+
+			function addInlineTask(categoryKey) {
+				const input = document.getElementById(
+					`inline-input-${categoryKey}`,
+				);
+				const energySelect = document.getElementById(
+					`inline-energy-${categoryKey}`,
+				);
+				if (!input || !energySelect) return;
+
+				const text = input.value.trim();
+				const energyValue = energySelect.value;
+				if (text === "") return;
+
+				const dataset = getDataset(categoryKey);
+				if (dataset) {
+					if (!dataset.items) dataset.items = [];
+					dataset.items.push({ text: text, energy: energyValue });
+
+					const storageKey = storageKeysMapping[categoryKey];
+					if (storageKey) {
+						localStorage.setItem(
+							storageKey,
+							JSON.stringify(dataset),
+						);
+						syncToBlob();
+					}
+
+					input.value = "";
+					renderSidebarCategories(categoryKey);
+				}
+			}
+
+			function deleteSidebarTask(category, taskIndex) {
+				const dataset = getDataset(category);
+				if (dataset && dataset.items) {
+					dataset.items.splice(taskIndex, 1);
+
+					const storageKey = storageKeysMapping[category];
+					if (storageKey) {
+						localStorage.setItem(
+							storageKey,
+							JSON.stringify(dataset),
+						);
+						syncToBlob();
+					}
+					renderSidebarCategories(category);
+				}
+			}
+
+			function switchView(view) {
+				currentView = view;
+				document
+					.getElementById("btn-view-daily")
+					.classList.toggle("active", view === "daily");
+				document
+					.getElementById("btn-view-weekly")
+					.classList.toggle("active", view === "weekly");
+				document
+					.getElementById("btn-view-analysis")
+					.classList.toggle("active", view === "analysis");
+
+				document.getElementById("daily-container").style.display =
+					view === "daily" ? "block" : "none";
+				document.getElementById("weekly-container").style.display =
+					view === "weekly" ? "block" : "none";
+				document.getElementById("analysis-container").style.display =
+					view === "analysis" ? "block" : "none";
+
+				if (view === "weekly") {
+					renderWeeklyView();
+					document.getElementById("selected-date-title").innerText =
+						"Weekoverzicht";
+				} else if (view === "analysis") {
+					renderAnalysisView();
+					document.getElementById("selected-date-title").innerText =
+						"Wekelijkse Leefstijl Analyse";
+				} else {
+					const parts = selectedDateStr.split("-");
+					const d = new Date(parts[0], parts[1] - 1, parts[2]);
+					const dayName = fullDayNames[d.getDay()];
+					document.getElementById("selected-date-title").innerText =
+						`${dayName} ${d.getDate()} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+				}
+			}
+
+			function selectDateAndSwitchToDaily(dateStr) {
+				const parts = dateStr.split("-");
+				selectDate(new Date(parts[0], parts[1] - 1, parts[2]));
+				switchView("daily");
+			}
+			function updateViews() {
+				generateTimeline();
+				renderTodos();
+				renderWeeklyGoals();
+				renderBrainDump();
+				renderHabits();
+				renderHub();
+				renderThomasList();
+				if (currentView === "weekly") renderWeeklyView();
+				if (currentView === "analysis") renderAnalysisView();
+				updateStats();
+			}
+
+			function renderCalendar() {
+				const year = currentDate.getFullYear();
+				const month = currentDate.getMonth();
+				document.getElementById("month-year-display").innerText =
+					`${monthNames[month]} ${year}`;
+				const firstDayIndex =
+					(new Date(year, month, 1).getDay() || 7) - 1;
+				const daysInMonth = new Date(year, month + 1, 0).getDate();
+				const calendarDays = document.getElementById("calendar-days");
+				if (!calendarDays) return;
+				calendarDays.innerHTML = "";
+				for (let i = 0; i < firstDayIndex; i++) {
+					calendarDays.innerHTML += `<div></div>`;
+				}
+				for (let i = 1; i <= daysInMonth; i++) {
+					const dateObj = new Date(year, month, i);
+					const dateStr = formatDate(dateObj);
+					const isSelected =
+						dateStr === selectedDateStr ? "active" : "";
+					let hasTasks = "";
+					const dayData = appData[dateStr];
+					if (
+						dayData &&
+						dayData.blocks &&
+						Object.keys(dayData.blocks).length > 0
+					)
+						hasTasks = "has-tasks";
+					calendarDays.innerHTML += `<div class="calendar-day ${isSelected} ${hasTasks}" onclick="selectDate(new Date(${year}, ${month}, ${i}))">${i}</div>`;
+				}
+			}
+
+			function changeMonth(direction) {
+				currentDate.setMonth(currentDate.getMonth() + direction);
+				renderCalendar();
+			}
+
+			function selectDate(dateObj) {
+				selectedDateStr = formatDate(dateObj);
+				if (currentView === "daily") {
+					const dayName = fullDayNames[dateObj.getDay()];
+					document.getElementById("selected-date-title").innerText =
+						`${dayName} ${dateObj.getDate()} ${monthNames[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+				}
+				ensureDataForDate(selectedDateStr);
+				renderCalendar();
+				updateViews();
+			}
+
+			function dragNewTask(e, taskName, energy, category = "") {
+				const payload = JSON.stringify({
+					type: "new",
+					task: taskName,
+					energy: energy,
+					category: category,
+				});
+				e.dataTransfer.setData("text/plain", payload);
+			}
+			function dragStartTimeline(e, timeStr) {
+				const payload = JSON.stringify({ type: "move", time: timeStr });
+				e.dataTransfer.setData("text/plain", payload);
+				setTimeout(() => (e.target.style.opacity = "0.4"), 0);
+			}
+			function dragStartTodo(e, taskText) {
+				const payload = JSON.stringify({
+					type: "todo-to-timeline",
+					task: taskText,
+				});
+				e.dataTransfer.setData("text/plain", payload);
+			}
+			function dragOver(e) {
+				e.preventDefault();
+			}
+			function dragEnter(e) {
+				e.preventDefault();
+				e.currentTarget.classList.add("drag-over");
+			}
+			function dragLeave(e) {
+				e.currentTarget.classList.remove("drag-over");
+			}
+
+			function syncTaskToTodo(taskText) {
+				ensureDataForDate(selectedDateStr);
+				if (
+					!appData[selectedDateStr].todos.some(
+						(t) => t.text === taskText,
+					)
+				) {
+					appData[selectedDateStr].todos.push({
+						text: taskText,
+						checked: false,
+					});
+					saveData();
+					renderTodos();
+				}
+			}
+
+			function drop(e, targetTimeStr) {
+				e.preventDefault();
+				e.stopPropagation();
+				e.currentTarget.classList.remove("drag-over");
+				try {
+					const rawData = e.dataTransfer.getData("text/plain");
+					if (!rawData) return;
+					const data = JSON.parse(rawData);
+					ensureDataForDate(selectedDateStr);
+
+					if (
+						data.type === "new" ||
+						data.type === "todo-to-timeline"
+					) {
+						const existingBlock =
+							appData[selectedDateStr].blocks[targetTimeStr];
+						let targetCategory = data.category || "overig";
+
+						if (existingBlock && existingBlock.task) {
+							if (existingBlock.task.includes("(Tussendoor:")) {
+								let cleanTask = existingBlock.task.replace(
+									")",
+									", " + data.task + ")",
+								);
+								appData[selectedDateStr].blocks[targetTimeStr] =
+									{
+										task: cleanTask,
+										energy:
+											existingBlock.energy || "medium",
+										category:
+											existingBlock.category ||
+											targetCategory,
+									};
+							} else {
+								appData[selectedDateStr].blocks[targetTimeStr] =
+									{
+										task:
+											existingBlock.task +
+											" (Tussendoor: " +
+											data.task +
+											")",
+										energy:
+											existingBlock.energy || "medium",
+										category:
+											existingBlock.category ||
+											targetCategory,
+									};
+							}
+						} else {
+							appData[selectedDateStr].blocks[targetTimeStr] = {
+								task: data.task,
+								energy: data.energy || "medium",
+								category: targetCategory,
+							};
+						}
+						if (data.type === "new" && data.category !== "relax")
+							syncTaskToTodo(data.task);
+					} else if (
+						data.type === "move" &&
+						data.time !== targetTimeStr
+					) {
+						appData[selectedDateStr].blocks[targetTimeStr] =
+							appData[selectedDateStr].blocks[data.time];
+						delete appData[selectedDateStr].blocks[data.time];
+					}
+					saveData();
+					updateViews();
+					renderCalendar();
+				} catch (err) {
+					console.error(err);
+				}
+			}
+
+			function dropToTodo(e) {
+				e.preventDefault();
+				e.stopPropagation();
+				e.currentTarget.classList.remove("drag-over");
+				try {
+					const rawData = e.dataTransfer.getData("text/plain");
+					if (!rawData) return;
+					const data = JSON.parse(rawData);
+					ensureDataForDate(selectedDateStr);
+					if (data.type === "new") {
+						if (data.category !== "relax")
+							syncTaskToTodo(data.task);
+					} else if (data.type === "move") {
+						const blockInfo =
+							appData[selectedDateStr].blocks[data.time];
+						if (blockInfo && blockInfo.task) {
+							syncTaskToTodo(blockInfo.task);
+							delete appData[selectedDateStr].blocks[data.time];
+						}
+					}
+					saveData();
+					updateViews();
+					renderCalendar();
+				} catch (err) {
+					console.error(err);
+				}
+			}
+
+			document.addEventListener("dragover", function (e) {
+				e.preventDefault();
+			});
+			document.addEventListener("drop", function (e) {
+				e.preventDefault();
+			});
+
+			function exportData() {
+				try {
+					const jsonString = JSON.stringify(appData, null, 2);
+					const blob = new Blob([jsonString], {
+						type: "application/json",
+					});
+					const url = URL.createObjectURL(blob);
+
+					const downloadAnchorNode = document.createElement("a");
+					downloadAnchorNode.setAttribute("href", url);
+					downloadAnchorNode.setAttribute(
+						"download",
+						"planning_backup.json",
+					);
+					document.body.appendChild(downloadAnchorNode);
+
+					downloadAnchorNode.click();
+					downloadAnchorNode.remove();
+					URL.revokeObjectURL(url);
+				} catch (err) {
+					alert(
+						"Exporteren mislukt via de automatische downloadknop. Kopieer in plaats daarvan je LocalStorage handmatig.",
+					);
+					console.error(err);
+				}
+			}
+
+			function importData(event) {
+				const file = event.target.files[0];
+				if (!file) return;
+				const reader = new FileReader();
+				reader.onload = function (e) {
+					try {
+						appData = JSON.parse(e.target.result);
+						saveData();
+						location.reload();
+					} catch (err) {
+						alert(
+							"Fout bij het laden. Zorg voor een geldig back-up bestand.",
+						);
+					}
+				};
+				reader.readAsText(file);
+			}
+
+			function extendBlock(timeStr) {
+				ensureDataForDate(selectedDateStr);
+				const currentIndex = timeSlots.indexOf(timeStr);
+				if (
+					currentIndex !== -1 &&
+					currentIndex < timeSlots.length - 1
+				) {
+					const nextTimeStr = timeSlots[currentIndex + 1];
+					const currentBlock =
+						appData[selectedDateStr].blocks[timeStr];
+					if (currentBlock) {
+						appData[selectedDateStr].blocks[nextTimeStr] = {
+							task: currentBlock.task,
+							energy: currentBlock.energy,
+							category: currentBlock.category || "overig",
+						};
+						saveData();
+						updateViews();
+						renderCalendar();
+					}
+				}
+			}
+
+			function generateTimeline() {
+				const container = document.getElementById("timeline-container");
+				if (!container) return;
+				container.innerHTML = "";
+				ensureDataForDate(selectedDateStr);
+				const blocksData = appData[selectedDateStr].blocks;
+				timeSlots.forEach((timeStr) => {
+					let blockInfo = blocksData[timeStr] || {
+						task: "",
+						energy: "empty",
+					};
+					const hasTask = !!blockInfo.task;
+					const bgColor = colors[blockInfo.energy] || colors["empty"];
+					const textColor =
+						textColors[blockInfo.energy] || textColors["empty"];
+					const blockDiv = document.createElement("div");
+					blockDiv.className = "time-block";
+					blockDiv.innerHTML = `
+                    <div class="hour-label">${timeStr}</div>
+                    <div class="task-area ${hasTask ? "has-task" : ""}" style="background-color: ${bgColor}; color: ${textColor}" onclick="handleBlockClick('${timeStr}')" draggable="${hasTask}" ondragstart="dragStartTimeline(event, '${timeStr}')" ondragend="this.style.opacity='1'" ondragover="dragOver(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" ondrop="drop(event, '${timeStr}')">
+                        <span>${blockInfo.task || ""}</span>
+                        <div class="task-action-btns">
+                            <button class="extend-btn" onclick="event.stopPropagation(); extendBlock('${timeStr}')" title="Trek deze activiteit door naar beneden">&#8595;</button>
+                            <button class="delete-btn" onclick="event.stopPropagation(); deleteBlock('${timeStr}')">&times;</button>
+                        </div>
+                    </div>`;
+					container.appendChild(blockDiv);
+				});
+			}
+
+			function handleBlockClick(timeStr) {
+				ensureDataForDate(selectedDateStr);
+				const currentObj = appData[selectedDateStr].blocks[timeStr];
+				const currentTask = currentObj ? currentObj.task : "";
+				const newTask = prompt(
+					`Wat wil je plannen om ${timeStr}? (Laat leeg om te wissen)`,
+					currentTask,
+				);
+				if (newTask !== null) {
+					if (newTask.trim() === "")
+						delete appData[selectedDateStr].blocks[timeStr];
+					else {
+						const currentEnergy =
+							currentObj && currentObj.energy ?
+								currentObj.energy
+							:	"appointment";
+						const currentCategory =
+							currentObj && currentObj.category ?
+								currentObj.category
+							:	"overig";
+						appData[selectedDateStr].blocks[timeStr] = {
+							task: newTask.trim(),
+							energy: currentEnergy,
+							category: currentCategory,
+						};
+
+						document.getElementById("timer-target").innerText =
+							"Doel: " + newTask.trim();
+					}
+					saveData();
+					updateViews();
+					renderCalendar();
+				}
+			}
+
+			function deleteBlock(timeStr) {
+				ensureDataForDate(selectedDateStr);
+				delete appData[selectedDateStr].blocks[timeStr];
+				saveData();
+				updateViews();
+				renderCalendar();
+			}
+
+			function blockWorkDay(type) {
+				if (
+					!confirm(
+						"Dit overschrijft je huidige planning op deze dag. Doorgaan?",
+					)
+				)
+					return;
+				ensureDataForDate(selectedDateStr);
+				if (type === "thuis") {
+					timeSlots.forEach((t) => {
+						const h = parseInt(t.split(":")[0]);
+						if (h >= 8 && h < 17 && t.endsWith(":00"))
+							appData[selectedDateStr].blocks[t] = {
+								task: "💻 Thuiswerken",
+								energy: "medium",
+								category: "work_study",
+							};
+					});
+					appData[selectedDateStr].blocks["12:00"] = {
+						task: "🥗 Lunch & Opladen",
+						energy: "low",
+						category: "relax",
+					};
+				} else if (type === "kantoor") {
+					timeSlots.forEach((t) => {
+						const h = parseInt(t.split(":")[0]);
+						if (h >= 7 && h < 17 && t.endsWith(":00")) {
+							appData[selectedDateStr].blocks[t] = {
+								task: "🏢 Op Kantoor",
+								energy: "high",
+								category: "work_study",
+							};
+						}
+					});
+					appData[selectedDateStr].blocks["12:00"] = {
+						task: "🥗 Lunch",
+						energy: "low",
+						category: "relax",
+					};
+				}
+				saveData();
+				updateViews();
+				renderCalendar();
+			}
+
+			function renderWeeklyGoals() {
+				const goalsList = document.getElementById("weekly-goals");
+				if (!goalsList) return;
+				goalsList.innerHTML = "";
+				const m = getMonday(selectedDateStr);
+				if (!appData.weeklyGoals[m]) appData.weeklyGoals[m] = [];
+
+				appData.weeklyGoals[m].forEach((goal, index) => {
+					if (goal.target === undefined) goal.target = 1;
+					if (goal.current === undefined)
+						goal.current = goal.checked ? 1 : 0;
+					if (goal.target > 1 && goal.current >= goal.target)
+						goal.checked = true;
+					if (goal.target > 1 && goal.current < goal.target)
+						goal.checked = false;
+
+					const li = document.createElement("li");
+					li.className = `todo-item ${goal.checked ? "checked" : ""}`;
+					li.setAttribute("draggable", "false");
+
+					let counterHtml = "";
+					if (goal.target > 1) {
+						counterHtml = `
+                        <span style="font-size: 0.75rem; background: #e8e8e8; padding: 2px 6px; border-radius: 10px; margin: 0 8px; color: #555;">
+                            ${goal.current} / ${goal.target}
+                        </span>
+                        <button style="border:none; background:#9b59b6; color:white; border-radius:4px; padding:2px 8px; margin-right:4px; cursor:pointer; font-weight:bold;" onclick="event.stopPropagation(); incrementGoal(${index})">+</button>
+                        <button style="border:none; background:#ccc; color:white; border-radius:4px; padding:2px 8px; margin-right:8px; cursor:pointer; font-weight:bold;" onclick="event.stopPropagation(); decrementGoal(${index})">-</button>
+                    `;
+					}
+
+					li.innerHTML = `
+                    <div style="display:flex; align-items:center; flex:1;" onclick="toggleWeeklyGoal(${index})">
+                        <span style="margin-right:5px; font-size:1.1rem; color: ${goal.checked ? "#a4b0be" : "#2d3436"};">${goal.checked ? "☑" : "☐"}</span>
+                        <span class="todo-text" style="flex:none;">${goal.text}</span>
+                        ${counterHtml}
+                    </div>
+                    <button class="todo-btn delete" onclick="event.stopPropagation(); deleteWeeklyGoal(${index})" title="Verwijderen">&times;</button>
+                `;
+					goalsList.appendChild(li);
+				});
+			}
+
+			function addWeeklyGoal() {
+				const input = document.getElementById("new-goal-input");
+				const targetInput = document.getElementById("new-goal-target");
+				let targetCount = parseInt(targetInput.value) || 1;
+
+				if (input && input.value.trim()) {
+					const mondayStr = getMonday(selectedDateStr);
+					if (!appData.weeklyGoals[mondayStr])
+						appData.weeklyGoals[mondayStr] = [];
+					appData.weeklyGoals[mondayStr].push({
+						text: input.value.trim(),
+						checked: false,
+						target: targetCount,
+						current: 0,
+					});
+					input.value = "";
+					targetInput.value = 1;
+					saveData();
+					renderWeeklyGoals();
+				}
+			}
+
+			function incrementGoal(index) {
+				const m = getMonday(selectedDateStr);
+				let goal = appData.weeklyGoals[m][index];
+				if (goal.current < goal.target) {
+					goal.current++;
+					if (goal.current >= goal.target) goal.checked = true;
+					saveData();
+					renderWeeklyGoals();
+				}
+			}
+
+			function decrementGoal(index) {
+				const m = getMonday(selectedDateStr);
+				let goal = appData.weeklyGoals[m][index];
+				if (goal.current > 0) {
+					goal.current--;
+					goal.checked = false;
+					saveData();
+					renderWeeklyGoals();
+				}
+			}
+
+			function toggleWeeklyGoal(index) {
+				const m = getMonday(selectedDateStr);
+				let goal = appData.weeklyGoals[m][index];
+				if (goal.target > 1) {
+					if (goal.checked) {
+						goal.checked = false;
+						goal.current = 0;
+					} else {
+						goal.checked = true;
+						goal.current = goal.target;
+					}
+				} else {
+					goal.checked = !goal.checked;
+					goal.current = goal.checked ? 1 : 0;
+				}
+				saveData();
+				renderWeeklyGoals();
+			}
+
+			function deleteWeeklyGoal(index) {
+				const m = getMonday(selectedDateStr);
+				appData.weeklyGoals[m].splice(index, 1);
+				saveData();
+				renderWeeklyGoals();
+			}
+
+			function renderTodos() {
+				const todoList = document.getElementById("daily-todos");
+				if (!todoList) return;
+				todoList.innerHTML = "";
+				ensureDataForDate(selectedDateStr);
+				const todos = appData[selectedDateStr].todos || [];
+				todos.forEach((todo, index) => {
+					const li = document.createElement("li");
+					li.className = `todo-item ${todo.checked ? "checked" : ""}`;
+					const safeTask = todo.text
+						.replace(/'/g, "\\'")
+						.replace(/"/g, "&quot;");
+					li.setAttribute("draggable", "true");
+					li.setAttribute(
+						"ondragstart",
+						`dragStartTodo(event, '${safeTask}')`,
+					);
+					li.innerHTML = `
+                    <div style="display:flex; align-items:center; flex:1;" onclick="toggleTodo(${index})">
+                        <span style="margin-right:5px; font-size:1.1rem; color: ${todo.checked ? "#a4b0be" : "#2d3436"};">${todo.checked ? "☑" : "☐"}</span>
+                        <span class="todo-text">${todo.text}</span>
+                    </div>
+                    <button class="todo-btn delete" onclick="event.stopPropagation(); deleteTodo(${index})" title="Verwijderen">&times;</button>
+                `;
+					todoList.appendChild(li);
+				});
+			}
+
+			function addDailyTodo() {
+				const input = document.getElementById("new-todo-input");
+				if (input && input.value.trim()) {
+					ensureDataForDate(selectedDateStr);
+					appData[selectedDateStr].todos.push({
+						text: input.value.trim(),
+						checked: false,
+					});
+					input.value = "";
+					saveData();
+					renderTodos();
+					renderCalendar();
+				}
+			}
+			function toggleTodo(index) {
+				ensureDataForDate(selectedDateStr);
+				appData[selectedDateStr].todos[index].checked =
+					!appData[selectedDateStr].todos[index].checked;
+				saveData();
+				renderTodos();
+			}
+			function deleteTodo(index) {
+				ensureDataForDate(selectedDateStr);
+				appData[selectedDateStr].todos.splice(index, 1);
+				saveData();
+				renderTodos();
+				renderCalendar();
+			}
+
+			function renderBrainDump() {
+				const dumpList = document.getElementById("brain-dump");
+				if (!dumpList) return;
+				dumpList.innerHTML = "";
+				appData.brainDump.forEach((item, index) => {
+					const li = document.createElement("div");
+					li.className = `todo-item ${item.checked ? "checked" : ""}`;
+					li.setAttribute("draggable", "false");
+					li.innerHTML = `
+                    <div style="display:flex; align-items:center; flex:1;" onclick="toggleBrainDump(${index})">
+                        <span style="margin-right:5px; font-size:1.1rem; color: ${item.checked ? "#a4b0be" : "#2d3436"};">${item.checked ? "☑" : "☐"}</span>
+                        <span class="todo-text">${item.text}</span>
+                    </div>
+                    <div class="todo-actions">
+                        <button class="todo-btn move" onclick="event.stopPropagation(); moveBrainDump(${index})" title="Kopieer direct naar een menu-categorie">&#10140;</button>
+                        <button class="todo-btn delete" onclick="event.stopPropagation(); deleteBrainDump(${index})" title="Verwijderen">&times;</button>
+                    </div>`;
+					dumpList.appendChild(li);
+				});
+			}
+
+			function addBrainDump() {
+				const input = document.getElementById("new-brain-input");
+				if (input && input.value.trim()) {
+					appData.brainDump.push({
+						text: input.value.trim(),
+						checked: false,
+					});
+					input.value = "";
+					saveData();
+					renderBrainDump();
+				}
+			}
+			function toggleBrainDump(index) {
+				appData.brainDump[index].checked =
+					!appData.brainDump[index].checked;
+				saveData();
+				renderBrainDump();
+			}
+			function deleteBrainDump(index) {
+				appData.brainDump.splice(index, 1);
+				saveData();
+				renderBrainDump();
+			}
+
+			function moveBrainDump(index) {
+				const item = appData.brainDump[index];
+				const promptText = `Naar welke map in het menu wilt u "${item.text}" kopiëren?\n\nTyp 1: Administratie\nTyp 2: Boodschappen & Winkelen\nTyp 3: Doelen & Projecten\nTyp 4: Familie & Relaties\nTyp 5: Financiën\nTyp 6: Gezondheid & Welzijn\nTyp 7: Hobby’s & Creativiteit\nTyp 8: Huis & Onderhoud\nTyp 9: Huishouden\nTyp 10: Ontspanning\nTyp 11: Persoonlijke ontwikkeling\nTyp 12: Persoonlijke verzorging\nTyp 13: Privé Afspraken\nTyp 14: Sociaal\nTyp 15: Sporten\nTyp 16: Vakantie & Uitjes\nTyp 17: Vervoer & Auto\nTyp 18: Werk / Studie\n\nTyp een cijfer:`;
+				const catChoice = prompt(promptText, "1");
+
+				let datasetName = "";
+				let storageKey = "";
+				if (catChoice === "1") {
+					datasetName = "admin";
+					storageKey = "catAdmin";
+				} else if (catChoice === "2") {
+					datasetName = "shopping";
+					storageKey = "catShopping";
+				} else if (catChoice === "3") {
+					datasetName = "projects";
+					storageKey = "catProjects";
+				} else if (catChoice === "4") {
+					datasetName = "family";
+					storageKey = "catFamily";
+				} else if (catChoice === "5") {
+					datasetName = "finance";
+					storageKey = "catFinance";
+				} else if (catChoice === "6") {
+					datasetName = "health";
+					storageKey = "catHealth";
+				} else if (catChoice === "7") {
+					datasetName = "hobbies";
+					storageKey = "catHobbies";
+				} else if (catChoice === "8") {
+					datasetName = "house";
+					storageKey = "catHouse";
+				} else if (catChoice === "9") {
+					datasetName = "chore";
+					storageKey = "catChore";
+				} else if (catChoice === "10") {
+					datasetName = "relax";
+					storageKey = "catRelax";
+				} else if (catChoice === "11") {
+					datasetName = "personal_dev";
+					storageKey = "catPersonalDev";
+				} else if (catChoice === "12") {
+					datasetName = "personal_care";
+					storageKey = "catPersonalCare";
+				} else if (catChoice === "13") {
+					datasetName = "private_appt";
+					storageKey = "catPrivateAppt";
+				} else if (catChoice === "14") {
+					datasetName = "social";
+					storageKey = "catSocial";
+				} else if (catChoice === "15") {
+					datasetName = "sport";
+					storageKey = "catSport";
+				} else if (catChoice === "16") {
+					datasetName = "vacation";
+					storageKey = "catVacation";
+				} else if (catChoice === "17") {
+					datasetName = "transport";
+					storageKey = "catTransport";
+				} else if (catChoice === "18") {
+					datasetName = "work_study";
+					storageKey = "catWorkStudy";
+				}
+
+				if (datasetName) {
+					const dataset = getDataset(datasetName);
+					if (dataset) {
+						if (!dataset.items) dataset.items = [];
+						dataset.items.push({
+							text: item.text,
+							energy: "medium",
+						});
+						localStorage.setItem(
+							storageKey,
+							JSON.stringify(dataset),
+						);
+						renderSidebarCategories(datasetName);
+
+						appData.brainDump.splice(index, 1);
+					}
+				} else {
+					return;
+				}
+
+				saveData();
+				updateViews();
+			}
+
+			function toggleHabit(habitText, index) {
+				ensureDataForDate(selectedDateStr);
+				appData[selectedDateStr].habits[habitText] =
+					document.getElementById(`habit-check-${index}`).checked;
+				saveData();
+			}
+
+			function addCustomHabit() {
+				const input = document.getElementById("new-habit-input");
+				const text = input.value.trim();
+				if (text === "") return;
+
+				if (!appData.habitsConfig.includes(text)) {
+					appData.habitsConfig.push(text);
+					saveData();
+					renderHabits();
+				}
+				input.value = "";
+			}
+
+			function deleteCustomHabit(index) {
+				if (
+					confirm(
+						"Weet je zeker dat je deze routine wilt verwijderen uit je vaste lijst?",
+					)
+				) {
+					appData.habitsConfig.splice(index, 1);
+					saveData();
+					renderHabits();
+				}
+			}
+
+			function renderHabits() {
+				ensureDataForDate(selectedDateStr);
+				const container = document.getElementById(
+					"habits-list-container",
+				);
+				if (!container) return;
+				container.innerHTML = "";
+
+				const currentHabitsStatus = appData[selectedDateStr].habits;
+
+				appData.habitsConfig.forEach((habitText, index) => {
+					const isChecked = currentHabitsStatus[habitText] || false;
+
+					container.innerHTML += `
+                    <div class="habit-row">
+                        <div class="habit-left">
+                            <input type="checkbox" class="habit-cb" id="habit-check-${index}" ${isChecked ? "checked" : ""} onchange="toggleHabit('${habitText}', ${index})">
+                            <span>${habitText}</span>
+                        </div>
+                        <span class="chip-delete-btn" onclick="deleteCustomHabit(${index})">&#10005;</span>
+                    </div>
+                `;
+				});
+			}
+
+			function renderHub() {
+				["orders", "gifts", "shops"].forEach((type) => {
+					const listContainer = document.getElementById(
+						`${type}-list`,
+					);
+					if (!listContainer) return;
+					listContainer.innerHTML = "";
+					const items = appData.hubData[type] || [];
+
+					items.forEach((item, index) => {
+						listContainer.innerHTML += `
+                        <div class="habit-row" style="${item.checked ? "text-decoration: line-through; color: #a4b0be;" : ""}">
+                            <div class="habit-left">
+                                <input type="checkbox" class="habit-cb" ${item.checked ? "checked" : ""} onchange="toggleHubItem('${type}', ${index})">
+                                <span>${item.text}</span>
+                            </div>
+                            <span class="chip-delete-btn" onclick="deleteHubItem('${type}', ${index})">&#10005;</span>
+                        </div>
+                    `;
+					});
+				});
+			}
+
+			function addHubItem(type) {
+				let id =
+					type === "orders" ? "new-order-input"
+					: type === "gifts" ? "new-gift-input"
+					: "new-shop-input";
+				const inputEl = document.getElementById(id);
+				const text = inputEl.value.trim();
+				if (text === "") return;
+
+				appData.hubData[type].push({ text: text, checked: false });
+				inputEl.value = "";
+				saveData();
+				renderHub();
+			}
+
+			function toggleHubItem(type, index) {
+				appData.hubData[type][index].checked =
+					!appData.hubData[type][index].checked;
+				saveData();
+				renderHub();
+			}
+
+			function deleteHubItem(type, index) {
+				appData.hubData[type].splice(index, 1);
+				saveData();
+				renderHub();
+			}
+
+			// NIEUW: Functies voor het renderen en beheren van Thomas's Lijstje
+			function renderThomasList() {
+				const listContainer = document.getElementById("thomas-list");
+				if (!listContainer) return;
+				listContainer.innerHTML = "";
+				const items = appData.thomasData || [];
+
+				items.forEach((item, index) => {
+					listContainer.innerHTML += `
+                    <div class="habit-row" style="${item.checked ? "text-decoration: line-through; color: #a4b0be;" : ""}">
+                        <div class="habit-left">
+                            <input type="checkbox" class="habit-cb" ${item.checked ? "checked" : ""} onchange="toggleThomasItem(${index})">
+                            <span>${item.text}</span>
+                        </div>
+                        <span class="chip-delete-btn" onclick="deleteThomasItem(${index})">&#10005;</span>
+                    </div>
+                `;
+				});
+			}
+
+			function addThomasItem() {
+				const inputEl = document.getElementById("new-thomas-input");
+				const text = inputEl.value.trim();
+				if (text === "") return;
+
+				appData.thomasData.push({ text: text, checked: false });
+				inputEl.value = "";
+				saveData();
+				renderThomasList();
+			}
+
+			function toggleThomasItem(index) {
+				appData.thomasData[index].checked =
+					!appData.thomasData[index].checked;
+				saveData();
+				renderThomasList();
+			}
+
+			function deleteThomasItem(index) {
+				appData.thomasData.splice(index, 1);
+				saveData();
+				renderThomasList();
+			}
+
+			function renderAnalysisView() {
+				const reportBox = document.getElementById(
+					"analysis-report-box",
+				);
+				if (!reportBox) return;
+				reportBox.innerHTML = "";
+
+				const parts = selectedDateStr.split("-");
+				const selDate = new Date(parts[0], parts[1] - 1, parts[2]);
+				const monday = new Date(selDate);
+				monday.setDate(monday.getDate() - (selDate.getDay() || 7) + 1);
+
+				const weekDates = [];
+				for (let i = 0; i < 7; i++) {
+					const d = new Date(monday);
+					d.setDate(d.getDate() + i);
+					weekDates.push(formatDate(d));
+				}
+
+				const totals = {};
+				let maxHours = 0;
+
+				weekDates.forEach((dateStr) => {
+					const dayData = appData[dateStr];
+					if (dayData && dayData.blocks) {
+						for (let time in dayData.blocks) {
+							const block = dayData.blocks[time];
+							if (block && block.task) {
+								const category = block.category || "overig";
+								const hour = parseInt(time.split(":")[0]);
+								const weight = hour >= 17 ? 0.25 : 1.0;
+
+								if (!totals[category]) totals[category] = 0;
+								totals[category] += weight;
+							}
+						}
+					}
+				});
+
+				for (let cat in totals) {
+					if (totals[cat] > maxHours) maxHours = totals[cat];
+				}
+
+				const sortedCategories = Object.keys(totals).sort(
+					(a, b) => totals[b] - totals[a],
+				);
+
+				if (sortedCategories.length === 0) {
+					reportBox.innerHTML = `<p style="font-size: 0.95rem; font-style: italic; text-align: center; color: #888; margin-top: 30px;">Geen geplande activiteiten gevonden in deze week om te analyseren. Sleep eerst items naar je tijdlijn!</p>`;
+					return;
+				}
+
+				sortedCategories.forEach((catKey) => {
+					const totalHours = Math.round(totals[catKey] * 10) / 10;
+					const label = categoryLabels[catKey] || catKey;
+					const percentage =
+						maxHours > 0 ? (totalHours / maxHours) * 100 : 0;
+
+					reportBox.innerHTML += `
+                    <div class="analysis-row">
+                        <div class="analysis-label">
+                            <span>${label}</span>
+                            <span><strong>${totalHours} u</strong></span>
+                        </div>
+                        <div class="analysis-bar-container">
+                            <div class="analysis-bar-fill" style="width: ${percentage}%;"></div>
+                        </div>
+                    </div>
+                `;
+				});
+			}
+
+			function saveScratchpad() {
+				const text = document.getElementById(
+					"dashboard-scratchpad",
+				).value;
+				localStorage.setItem("dashboard_scratchpad_text", text);
+				syncToBlob();
+			}
+
+			function loadScratchpad() {
+				const savedText =
+					localStorage.getItem("dashboard_scratchpad_text") || "";
+				document.getElementById("dashboard-scratchpad").value =
+					savedText;
+			}
+
+			function updateStats() {
+				ensureDataForDate(selectedDateStr);
+				const blocksData = appData[selectedDateStr].blocks;
+				let highHours = 0;
+				let mediumHours = 0;
+				let lowHours = 0;
+
+				for (let time in blocksData) {
+					if (!blocksData[time]) continue;
+					const hour = parseInt(time.split(":")[0]);
+					const weight = hour >= 17 ? 0.25 : 1.0;
+
+					if (blocksData[time].energy === "high") highHours += weight;
+					else if (blocksData[time].energy === "medium")
+						mediumHours += weight;
+					else if (blocksData[time].energy === "low")
+						lowHours += weight;
+				}
+
+				let batteryLevel =
+					70 - highHours * 15 - mediumHours * 5 + lowHours * 20;
+				if (batteryLevel > 100) batteryLevel = 100;
+				if (batteryLevel < 0) batteryLevel = 0;
+
+				const batteryBar = document.getElementById("battery-bar");
+				const batteryLevelText =
+					document.getElementById("battery-level-text");
+				const batteryAdvice = document.getElementById("battery-advice");
+
+				if (batteryBar && batteryLevelText && batteryAdvice) {
+					batteryBar.style.width = batteryLevel + "%";
+					batteryLevelText.innerText = Math.round(batteryLevel) + "%";
+
+					if (batteryLevel >= 50) {
+						batteryBar.style.backgroundColor = "var(--low-color)";
+					} else if (batteryLevel >= 20) {
+						batteryBar.style.backgroundColor =
+							"var(--medium-color)";
+					} else {
+						batteryBar.style.backgroundColor = "var(--high-color)";
+					}
+
+					let advice = `Gepland: <strong>${highHours}u</strong> intense focus vs <strong>${lowHours}u</strong> herstel.`;
+					if (batteryLevel < 30) {
+						advice += `<br><span style='color: #d63031; font-weight: bold;'>⚠️ Batterij kritiek! Sleep er snel een groen 'Opladen'-blok of ontspanning bij.</span>`;
+					} else if (highHours > 4) {
+						advice += `<br><span style='color: #e67e22; font-weight: bold;'>💡 Flinke focusdag vandaag! Bewaak je grenzen en neem pauzes.</span>`;
+					} else if (batteryLevel === 100) {
+						advice += `<br><span style='color: #2ecc71; font-weight: bold;'>🌿 100% Opgeladen! Een super duurzame en vitale planning.</span>`;
+					} else {
+						advice += `<br><span>👍 Je energiebalans is vandaag prachtig in evenwicht!</span>`;
+					}
+					batteryAdvice.innerHTML = advice;
+				}
+			}
+
+			function renderWeeklyView() {
+				const parts = selectedDateStr.split("-");
+				const selDate = new Date(parts[0], parts[1] - 1, parts[2]);
+				const monday = new Date(selDate);
+				monday.setDate(monday.getDate() - (selDate.getDay() || 7) + 1);
+				let html =
+					'<div class="weekly-grid"><div class="weekly-cell empty-cell" style="background:transparent; border:none;"></div>';
+				const weekDates = [];
+				for (let i = 0; i < 7; i++) {
+					const d = new Date(monday);
+					d.setDate(d.getDate() + i);
+					const dStr = formatDate(d);
+					weekDates.push(dStr);
+					html += `<div class="weekly-cell header-cell" style="${dStr === formatDate(new Date()) ? "border-bottom: 4px solid #ff7675;" : ""}">${dayNamesShort[d.getDay()]} ${d.getDate()}</div>`;
+				}
+
+				const activeTimeSlots = timeSlots.filter((timeStr) => {
+					for (let i = 0; i < 7; i++) {
+						if (appData[weekDates[i]]?.blocks[timeStr]?.task)
+							return true;
+					}
+					return false;
+				});
+
+				const slotsToRender =
+					activeTimeSlots.length > 0 ?
+						activeTimeSlots
+					:	[
+							"08:00",
+							"10:00",
+							"12:00",
+							"14:00",
+							"16:00",
+							"18:00",
+							"20:00",
+							"22:00",
+						];
+
+				slotsToRender.forEach((timeStr) => {
+					html += `<div class="weekly-cell time-cell">${timeStr}</div>`;
+
+					for (let i = 0; i < 7; i++) {
+						const dateStr = weekDates[i];
+						ensureDataForDate(dateStr);
+						const blockInfo = appData[dateStr].blocks[timeStr];
+
+						if (blockInfo && blockInfo.task) {
+							const bgColor =
+								colors[blockInfo.energy] ||
+								colors["appointment"];
+							const txtColor =
+								textColors[blockInfo.energy] ||
+								textColors["appointment"];
+
+							const currentIndex = timeSlots.indexOf(timeStr);
+							let isContinuation = false;
+							let isFollowed = false;
+
+							if (currentIndex > 0) {
+								const prevBlock =
+									appData[dateStr].blocks[
+										timeSlots[currentIndex - 1]
+									];
+								if (
+									prevBlock &&
+									prevBlock.task === blockInfo.task
+								)
+									isContinuation = true;
+							}
+							if (currentIndex < timeSlots.length - 1) {
+								const nextBlock =
+									appData[dateStr].blocks[
+										timeSlots[currentIndex + 1]
+									];
+								if (
+									nextBlock &&
+									nextBlock.task === blockInfo.task
+								)
+									isFollowed = true;
+							}
+
+							let bRadius = "4px";
+							let displayText =
+								blockInfo.task.length > 18 ?
+									blockInfo.task.substring(0, 16) + ".."
+								:	blockInfo.task;
+
+							if (isContinuation && isFollowed) {
+								bRadius = "0px";
+								displayText = "";
+							} else if (isContinuation && !isFollowed) {
+								bRadius = "0 0 4px 4px";
+								displayText = "";
+							} else if (!isContinuation && isFollowed) {
+								bRadius = "4px 4px 0 0";
+							}
+
+							html += `<div class="weekly-cell task-cell" style="background-color: ${bgColor}; color: ${txtColor}; border-radius: ${bRadius};" onclick="selectDateAndSwitchToDaily('${dateStr}')" title="${blockInfo.task}">${displayText}</div>`;
+						} else {
+							html += `<div class="weekly-cell empty-cell" onclick="selectDateAndSwitchToDaily('${dateStr}')"></div>`;
+						}
+					}
+				});
+
+				const gridContainer = document.getElementById(
+					"weekly-grid-container",
+				);
+				if (gridContainer) gridContainer.innerHTML = html + "</div>";
+			}
+
+			function saveData() {
+				localStorage.setItem(
+					"ultimateLifeDashboard",
+					JSON.stringify(appData),
+				);
+				syncToBlob();
+			}
+
+			// ===== VERCEL BLOB SYNC =====
+			const BLOB_STORAGE_KEYS = [
+				"catAdmin",
+				"catShopping",
+				"catProjects",
+				"catFamily",
+				"catFinance",
+				"catHealth",
+				"catHobbies",
+				"catHouse",
+				"catChore",
+				"catRelax",
+				"catPersonalDev",
+				"catPersonalCare",
+				"catPrivateAppt",
+				"catSocial",
+				"catSport",
+				"catVacation",
+				"catTransport",
+				"catWorkStudy",
+			];
+
+			function buildBundle() {
+				const categories = {};
+				BLOB_STORAGE_KEYS.forEach(function (key) {
+					try {
+						const val = localStorage.getItem(key);
+						if (val) categories[key] = JSON.parse(val);
+					} catch (e) {}
+				});
+				return {
+					appData: appData,
+					categories: categories,
+					scratchpad:
+						localStorage.getItem("dashboard_scratchpad_text") || "",
+				};
+			}
+
+			let _syncTimer = null;
+			function syncToBlob() {
+				clearTimeout(_syncTimer);
+				_syncTimer = setTimeout(function () {
+					fetch("/api/data", {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify(buildBundle()),
+					}).catch(function (e) {
+						console.warn("Blob sync failed:", e);
+					});
+				}, 800);
+			}
+
+			async function loadFromBlob() {
+				try {
+					const res = await fetch("/api/data");
+					if (!res.ok) return;
+					const bundle = await res.json();
+					if (bundle.appData && typeof bundle.appData === "object") {
+						localStorage.setItem(
+							"ultimateLifeDashboard",
+							JSON.stringify(bundle.appData),
+						);
+					}
+					if (
+						bundle.categories &&
+						typeof bundle.categories === "object"
+					) {
+						Object.entries(bundle.categories).forEach(function ([
+							key,
+							val,
+						]) {
+							localStorage.setItem(key, JSON.stringify(val));
+						});
+					}
+					if (typeof bundle.scratchpad === "string") {
+						localStorage.setItem(
+							"dashboard_scratchpad_text",
+							bundle.scratchpad,
+						);
+					}
+				} catch (e) {
+					console.warn(
+						"Failed to load from blob, using local data:",
+						e,
+					);
+				}
+			}
+
+			function reloadAppData() {
+				try {
+					appData =
+						JSON.parse(
+							localStorage.getItem("ultimateLifeDashboard"),
+						) || {};
+				} catch (e) {
+					appData = {};
+				}
+				if (!appData || typeof appData !== "object") appData = {};
+				if (
+					!appData.weeklyGoals ||
+					typeof appData.weeklyGoals !== "object"
+				)
+					appData.weeklyGoals = {};
+				if (
+					!appData.recurringTasksConfig ||
+					typeof appData.recurringTasksConfig !== "object"
+				)
+					appData.recurringTasksConfig = {
+						weekly: {},
+						monthly: {},
+						biweekly: {},
+					};
+				if (!appData.recurringTasksConfig.biweekly)
+					appData.recurringTasksConfig.biweekly = {};
+				if (!appData.brainDump || !Array.isArray(appData.brainDump))
+					appData.brainDump = [];
+				if (
+					!appData.habitsConfig ||
+					!Array.isArray(appData.habitsConfig)
+				)
+					appData.habitsConfig = [
+						"💧 2L Water Drinken",
+						"💊 Vitamines Innemen",
+						"📖 10 Pagina's Lezen",
+						"🏃‍♂️ 20 Minuten Bewegen",
+					];
+				if (!appData.hubData || typeof appData.hubData !== "object")
+					appData.hubData = { orders: [], gifts: [], shops: [] };
+				if (!appData.thomasData || !Array.isArray(appData.thomasData))
+					appData.thomasData = [];
+			}
+
+			function reloadCategoryVars() {
+				adminTasks = safeLoadMenu("catAdmin", defaultAdmin);
+				shoppingTasks = safeLoadMenu("catShopping", defaultShopping);
+				projectsTasks = safeLoadMenu("catProjects", defaultProjects);
+				familyTasks = safeLoadMenu("catFamily", defaultFamily);
+				financeTasks = safeLoadMenu("catFinance", defaultFinance);
+				healthTasks = safeLoadMenu("catHealth", defaultHealth);
+				hobbiesTasks = safeLoadMenu("catHobbies", defaultHobbies);
+				houseTasks = safeLoadMenu("catHouse", defaultHouse);
+				choreTasks = safeLoadMenu("catChore", defaultChore);
+				relaxTasks = safeLoadMenu("catRelax", defaultRelax);
+				personalDevTasks = safeLoadMenu(
+					"catPersonalDev",
+					defaultPersonalDev,
+				);
+				personalCareTasks = safeLoadMenu(
+					"catPersonalCare",
+					defaultPersonalCare,
+				);
+				privateApptTasks = safeLoadMenu(
+					"catPrivateAppt",
+					defaultPrivateAppt,
+				);
+				socialTasks = safeLoadMenu("catSocial", defaultSocial);
+				sportTasks = safeLoadMenu("catSport", defaultSport);
+				vacationTasks = safeLoadMenu("catVacation", defaultVacation);
+				transportTasks = safeLoadMenu("catTransport", defaultTransport);
+				workStudyTasks = safeLoadMenu("catWorkStudy", defaultWorkStudy);
+			}
+			// ===== END VERCEL BLOB SYNC =====
+
+			window.onload = async function () {
+				await loadFromBlob();
+				reloadAppData();
+				reloadCategoryVars();
+				init();
+			};
+		</script>
+	</body>
+</html>
