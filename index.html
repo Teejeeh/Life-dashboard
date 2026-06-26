@@ -3119,15 +3119,19 @@
 			function toggleWeeklyGoal(index) {
 				const m = getMonday(selectedDateStr);
 				let goal = appData.weeklyGoals[m][index];
+				
 				if (goal.target > 1) {
-					if (goal.checked) {
-						goal.checked = false;
-						goal.current = 0;
+					// Snel-turven: verhoog de teller met 1 bij elke klik
+					if (goal.current < goal.target) {
+						goal.current++;
+						if (goal.current === goal.target) goal.checked = true;
 					} else {
-						goal.checked = true;
-						goal.current = goal.target;
+						// Als het doel al behaald is, resetten we hem naar 0 bij de volgende klik
+						goal.current = 0;
+						goal.checked = false;
 					}
 				} else {
+					// Standaard gedrag voor doelen die je maar 1x hoeft te doen
 					goal.checked = !goal.checked;
 					goal.current = goal.checked ? 1 : 0;
 				}
@@ -3828,6 +3832,22 @@
 					targetDiv.innerText = newTarget.trim() ? "Doel: " + newTarget.trim() : "Doel: Geen actief focusdoel";
 				}
 			}
+			// ==========================================
+			// ⌨️ KEYBOARD SHORTCUTS (NIEUW)
+			// ==========================================
+			document.addEventListener('keydown', function(e) {
+				// Controleer of de gebruiker in een invoerveld of tekstvak aan het typen is
+				const actiefElement = document.activeElement.tagName;
+				if (actiefElement === 'INPUT' || actiefElement === 'TEXTAREA') {
+					return; // Doe niets als de gebruiker aan het typen is
+				}
+				
+				// Spatiebalk = Start / Pauzeer de Focus Timer
+				if (e.code === 'Space') {
+					e.preventDefault(); // Voorkom dat de pagina naar beneden scrolt
+					toggleTimer();
+				}
+			});
 
 			// ===== VERCEL BLOB SYNC =====
 			const BLOB_STORAGE_KEYS = [
