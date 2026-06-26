@@ -1,4 +1,4 @@
-const { list, put } = require("@vercel/blob");
+const { get, put } = require("@vercel/blob");
 
 const BLOB_PATH = "dashboard/data.json";
 
@@ -13,25 +13,23 @@ module.exports = async function handler(req, res) {
 	if (!isAuthorized(req)) {
 		return res.status(401).json({ error: "Unauthorized" });
 	}
+
 	if (req.method === "GET") {
 		try {
-			const { blobs } = await list({ prefix: BLOB_PATH, limit: 1 });
-			if (blobs.length === 0) {
+			const result = await get(BLOB_PATH, {
+				access: "private",
+				useCache: false,
+			});
+			if (!result || result.statusCode !== 200 || !result.stream) {
 				return res.status(200).json({});
 			}
-			const response = await fetch(blobs[0].url, {
-				headers: {
-					Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
-				},
-			});
-			if (!response.ok) {
-				return res
-					.status(500)
-					.json({ error: "Failed to fetch blob content" });
-			}
-			const data = await response.json();
-			return res.status(200).json(data);
+			const text = await new Response(result.stream).text();
+			return res.status(200).json(JSON.parse(text));
 		} catch (err) {
+			// Blob doesn't exist yet
+			if (err.message && err.message.includes("404")) {
+				return res.status(200).json({});
+			}
 			console.error("GET /api/data error:", err);
 			return res
 				.status(500)
@@ -41,7 +39,6 @@ module.exports = async function handler(req, res) {
 
 	if (req.method === "POST") {
 		try {
-			// Parse body manually if not already parsed
 			let body = req.body;
 			if (typeof body === "string") {
 				body = JSON.parse(body);
@@ -53,6 +50,7 @@ module.exports = async function handler(req, res) {
 				access: "private",
 				contentType: "application/json",
 				addRandomSuffix: false,
+				allowOverwrite: true,
 			});
 			return res.status(200).json({ ok: true });
 		} catch (err) {
