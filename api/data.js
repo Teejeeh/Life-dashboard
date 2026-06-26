@@ -1,8 +1,8 @@
-import { list, put } from "@vercel/blob";
+const { list, put } = require("@vercel/blob");
 
 const BLOB_PATH = "dashboard/data.json";
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
 	if (req.method === "GET") {
 		try {
 			const { blobs } = await list({ prefix: BLOB_PATH, limit: 1 });
@@ -19,13 +19,19 @@ export default async function handler(req, res) {
 			return res.status(200).json(data);
 		} catch (err) {
 			console.error("GET /api/data error:", err);
-			return res.status(500).json({ error: "Failed to load data" });
+			return res
+				.status(500)
+				.json({ error: err.message || "Failed to load data" });
 		}
 	}
 
 	if (req.method === "POST") {
 		try {
-			const body = req.body;
+			// Parse body manually if not already parsed
+			let body = req.body;
+			if (typeof body === "string") {
+				body = JSON.parse(body);
+			}
 			if (!body || typeof body !== "object") {
 				return res.status(400).json({ error: "Invalid request body" });
 			}
@@ -37,9 +43,11 @@ export default async function handler(req, res) {
 			return res.status(200).json({ ok: true });
 		} catch (err) {
 			console.error("POST /api/data error:", err);
-			return res.status(500).json({ error: "Failed to save data" });
+			return res
+				.status(500)
+				.json({ error: err.message || "Failed to save data" });
 		}
 	}
 
 	return res.status(405).json({ error: "Method not allowed" });
-}
+};
