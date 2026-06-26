@@ -3695,6 +3695,86 @@
 				);
 				syncToBlob();
 			}
+			// ==========================================
+			// ⏱️ FOCUS TIMER FUNCTIES (NIEUW)
+			// ==========================================
+			function changeDuration() {
+				const durationInput = document.getElementById("timer-duration");
+				let minutes = parseInt(durationInput.value) || 25;
+				
+				// Begrenzen tussen 1 en 180 minuten
+				if (minutes < 1) minutes = 1;
+				if (minutes > 180) minutes = 180;
+				durationInput.value = minutes;
+				
+				// Alleen de tijd aanpassen als de timer niet al loopt
+				if (!isTimerRunning) {
+					timerTimeLeft = minutes * 60;
+					updateTimerDisplay();
+				}
+			}
+
+			function updateTimerDisplay() {
+				const minutes = Math.floor(timerTimeLeft / 60);
+				const seconds = timerTimeLeft % 60;
+				document.getElementById("timer-clock").innerText = 
+					`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+			}
+
+			function toggleTimer() {
+				const startBtn = document.getElementById("timer-start-btn");
+				
+				if (isTimerRunning) {
+					// Timer pauzeren
+					clearInterval(timerInterval);
+					isTimerRunning = false;
+					startBtn.innerText = "Start";
+					startBtn.style.backgroundColor = "var(--primary-color)";
+				} else {
+					// Timer starten
+					isTimerRunning = true;
+					startBtn.innerText = "Pauze";
+					startBtn.style.backgroundColor = "#ff7675"; // Roodachtige pauzekleur
+					
+					timerInterval = setInterval(function() {
+						if (timerTimeLeft > 0) {
+							timerTimeLeft--;
+							updateTimerDisplay();
+						} else {
+							// Timer is afgelopen
+							clearInterval(timerInterval);
+							isTimerRunning = false;
+							startBtn.innerText = "Start";
+							startBtn.style.backgroundColor = "var(--primary-color)";
+							alert("Focus sessie voorbij! Tijd om even op te laden. 🌿");
+						}
+					}, 1000);
+				}
+			}
+
+			function resetTimer() {
+				clearInterval(timerInterval);
+				isTimerRunning = false;
+				
+				const durationInput = document.getElementById("timer-duration");
+				const minutes = parseInt(durationInput.value) || 25;
+				timerTimeLeft = minutes * 60;
+				updateTimerDisplay();
+				
+				const startBtn = document.getElementById("timer-start-btn");
+				startBtn.innerText = "Start";
+				startBtn.style.backgroundColor = "var(--primary-color)";
+			}
+
+			function setCustomTimerTarget() {
+				const targetDiv = document.getElementById("timer-target");
+				const currentTarget = targetDiv.innerText.replace("Doel: ", "");
+				const newTarget = prompt("Wat is het focusdoel van deze sessie?", currentTarget === "Geen actief focusdoel" ? "" : currentTarget);
+				
+				if (newTarget !== null) {
+					targetDiv.innerText = newTarget.trim() ? "Doel: " + newTarget.trim() : "Doel: Geen actief focusdoel";
+				}
+			}
 
 			// ===== VERCEL BLOB SYNC =====
 			const BLOB_STORAGE_KEYS = [
