@@ -2,7 +2,17 @@ const { list, put } = require("@vercel/blob");
 
 const BLOB_PATH = "dashboard/data.json";
 
+function isAuthorized(req) {
+	const secret = process.env.API_SECRET;
+	if (!secret) return false;
+	const auth = req.headers["authorization"] || "";
+	return auth === `Bearer ${secret}`;
+}
+
 module.exports = async function handler(req, res) {
+	if (!isAuthorized(req)) {
+		return res.status(401).json({ error: "Unauthorized" });
+	}
 	if (req.method === "GET") {
 		try {
 			const { blobs } = await list({ prefix: BLOB_PATH, limit: 1 });
@@ -40,7 +50,7 @@ module.exports = async function handler(req, res) {
 				return res.status(400).json({ error: "Invalid request body" });
 			}
 			await put(BLOB_PATH, JSON.stringify(body), {
-				access: "private",
+				access: "public",
 				contentType: "application/json",
 				addRandomSuffix: false,
 			});

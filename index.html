@@ -3734,13 +3734,29 @@
 				};
 			}
 
+			function getApiSecret() {
+				return localStorage.getItem("dashboard_api_secret") || "";
+			}
+
+			function promptForSecret() {
+				const secret = prompt("Enter the dashboard API secret:");
+				if (secret) {
+					localStorage.setItem("dashboard_api_secret", secret);
+					return secret;
+				}
+				return "";
+			}
+
 			let _syncTimer = null;
 			function syncToBlob() {
 				clearTimeout(_syncTimer);
 				_syncTimer = setTimeout(function () {
 					fetch("/api/data", {
 						method: "POST",
-						headers: { "Content-Type": "application/json" },
+						headers: {
+							"Content-Type": "application/json",
+							Authorization: `Bearer ${getApiSecret()}`,
+						},
 						body: JSON.stringify(buildBundle()),
 					}).catch(function (e) {
 						console.warn("Blob sync failed:", e);
@@ -3750,7 +3766,17 @@
 
 			async function loadFromBlob() {
 				try {
-					const res = await fetch("/api/data");
+					let secret = getApiSecret();
+					if (!secret) secret = promptForSecret();
+					if (!secret) return;
+					const res = await fetch("/api/data", {
+						headers: { Authorization: `Bearer ${secret}` },
+					});
+					if (res.status === 401) {
+						localStorage.removeItem("dashboard_api_secret");
+						alert("Ongeldig API-wachtwoord. Ververs de pagina en probeer opnieuw.");
+						return;
+					}
 					if (!res.ok) return;
 					const bundle = await res.json();
 					if (bundle.appData && typeof bundle.appData === "object") {
