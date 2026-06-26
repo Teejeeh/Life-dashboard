@@ -9,7 +9,11 @@ module.exports = async function handler(req, res) {
 			if (blobs.length === 0) {
 				return res.status(200).json({});
 			}
-			const response = await fetch(blobs[0].url);
+			const response = await fetch(blobs[0].url, {
+				headers: {
+					Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+				},
+			});
 			if (!response.ok) {
 				return res
 					.status(500)
@@ -36,7 +40,7 @@ module.exports = async function handler(req, res) {
 				return res.status(400).json({ error: "Invalid request body" });
 			}
 			await put(BLOB_PATH, JSON.stringify(body), {
-				access: "public",
+				access: "private",
 				contentType: "application/json",
 				addRandomSuffix: false,
 			});
