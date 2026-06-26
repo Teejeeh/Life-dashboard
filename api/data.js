@@ -50,6 +50,7 @@ module.exports = async function handler(req, res) {
 				return res.status(400).json({ error: "Invalid request body" });
 			}
 			await put(BLOB_PATH, JSON.stringify(body), {
+				access: "private",
 				contentType: "application/json",
 				addRandomSuffix: false,
 			});
