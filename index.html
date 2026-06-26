@@ -894,6 +894,30 @@
 				transform: scale(1.01);
 				z-index: 2;
 			}
+			/* Zen-modus / Beeldvullend styling voor de timer */
+#timer-fullscreen-container:fullscreen {
+    background-color: #1e272e !important; /* Rustgevend donkergrijs/blauw */
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100vw;
+    height: 100vh;
+    gap: 20px;
+}
+#timer-fullscreen-container:fullscreen #timer-clock {
+    font-size: 16vw !important; /* Gigantische cijfers op basis van schermbreedte */
+    color: var(--low-color) !important; /* Je mooie heldere groen/blauwe kleur */
+    font-family: monospace;
+    margin: 0 !important;
+}
+#timer-fullscreen-container:fullscreen #timer-target {
+    font-size: 3vw !important; /* Het doel groot onder de klok */
+    color: #a4b0be !important;
+    font-style: normal !important;
+    border: none !important;
+    background: transparent !important;
+}
 		</style>
 	</head>
 	<body>
@@ -927,76 +951,87 @@
 
 				<!-- Focus Timer Widget -->
 				<div class="card">
-					<h2>⏱️ Focus Timer</h2>
-					<div
-						style="
-							display: flex;
-							gap: 8px;
-							justify-content: center;
-							align-items: center;
-							margin-bottom: 10px;
-						"
-					>
-						<label
-							for="timer-duration"
-							style="
-								font-size: 0.85rem;
-								color: #636e72;
-								font-weight: 600;
-							"
-							>Duur instellen:</label
-						>
-						<input
-							type="number"
-							id="timer-duration"
-							min="1"
-							max="180"
-							value="25"
-							onchange="changeDuration()"
-							style="
-								width: 65px;
-								padding: 5px;
-								border: 1px solid #ddd;
-								border-radius: 6px;
-								text-align: center;
-								font-weight: bold;
-								outline: none;
-							"
-						/>
-						<span
-							style="
-								font-size: 0.85rem;
-								color: #636e72;
-								font-weight: 600;
-							"
-							>min</span
-						>
-					</div>
-					<div class="timer-display" id="timer-clock">25:00</div>
-					<div
-						class="timer-target-text"
-						id="timer-target"
-						onclick="setCustomTimerTarget()"
-						title="Klik hier om handmatig je focusdoel aan te passen"
-					>
-						Doel: Geen actief focusdoel
-					</div>
-					<div class="timer-btn-row">
-						<button
-							class="timer-btn timer-start"
-							id="timer-start-btn"
-							onclick="toggleTimer()"
-						>
-							Start
-						</button>
-						<button
-							class="timer-btn timer-reset"
-							onclick="resetTimer()"
-						>
-							Reset
-						</button>
-					</div>
-				</div>
+    <h2>⏱️ Focus Timer</h2>
+    <div
+        style="
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px;
+        "
+    >
+        <label
+            for="timer-duration"
+            style="
+                font-size: 0.85rem;
+                color: #636e72;
+                font-weight: 600;
+            "
+            >Duur instellen:</label
+        >
+        <input
+            type="number"
+            id="timer-duration"
+            min="1"
+            max="180"
+            value="25"
+            onchange="changeDuration()"
+            style="
+                width: 65px;
+                padding: 5px;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                text-align: center;
+                font-weight: bold;
+                outline: none;
+            "
+        />
+        <span
+            style="
+                font-size: 0.85rem;
+                color: #636e72;
+                font-weight: 600;
+            "
+            >min</span
+        >
+    </div>
+    
+    <div id="timer-fullscreen-container">
+        <div class="timer-display" id="timer-clock">25:00</div>
+        <div
+            class="timer-target-text"
+            id="timer-target"
+            onclick="setCustomTimerTarget()"
+            title="Klik hier om handmatig je focusdoel aan te passen"
+        >
+            Doel: Geen actief focusdoel
+        </div>
+    </div>
+
+    <div class="timer-btn-row">
+        <button
+            class="timer-btn timer-start"
+            id="timer-start-btn"
+            onclick="toggleTimer()"
+        >
+            Start
+        </button>
+        <button
+            class="timer-btn timer-reset"
+            onclick="resetTimer()"
+        >
+            Reset
+        </button>
+        <button
+            class="timer-btn"
+            style="background-color: #34495e; color: white;"
+            onclick="toggleFullscreen()"
+        >
+            ⛶ Zen
+        </button>
+    </div>
+</div>
 
 				<!-- Mijn Shop & Gift Hub Widget -->
 				<div class="card" style="padding-bottom: 10px">
@@ -3973,6 +4008,19 @@
 				reloadCategoryVars();
 				init();
 			};
+			function toggleFullscreen() {
+				const container = document.getElementById("timer-fullscreen-container");
+				
+				if (!document.fullscreenElement) {
+					// Ga naar fullscreen
+					container.requestFullscreen().catch(function(err) {
+						console.warn(`Fullscreen activeren mislukt: ${err.message}`);
+					});
+				} else {
+					// Verlaat fullscreen
+					document.exitFullscreen();
+				}
+			}
 		</script>
 	</body>
 </html>
