@@ -1,4 +1,4 @@
-const { get, put } = require("@vercel/blob");
+import { get, put } from "@vercel/blob";
 
 const BLOB_PATH = "dashboard/data.json";
 
@@ -9,7 +9,7 @@ function isAuthorized(req) {
 	return auth === `Bearer ${secret}`;
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
 	if (!isAuthorized(req)) {
 		return res.status(401).json({ error: "Unauthorized" });
 	}
