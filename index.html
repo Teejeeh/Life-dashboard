@@ -3774,7 +3774,9 @@
 					});
 					if (res.status === 401) {
 						localStorage.removeItem("dashboard_api_secret");
-						alert("Ongeldig API-wachtwoord. Ververs de pagina en probeer opnieuw.");
+						alert(
+							"Ongeldig API-wachtwoord. Ververs de pagina en probeer opnieuw.",
+						);
 						return;
 					}
 					if (!res.ok) return;
