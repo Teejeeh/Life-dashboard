@@ -2152,6 +2152,12 @@
 						},
 					);
 				}
+
+				// FIX: Pas de hoogte van het uitklapmenu direct aan de nieuwe inhoud aan
+				const panel = list.closest('.accordion-content');
+				if (panel && panel.classList.contains('show')) {
+					panel.style.maxHeight = panel.scrollHeight + "px";
+				}
 			}
 
 			function deleteRecurringConfig(type, key, index) {
@@ -2358,9 +2364,16 @@
 						"ondragstart",
 						`dragNewTask(event, '${safeTask}', 'appointment', 'private_appt')`,
 					);
-					chipDiv.innerHTML = `<span>${text}</span> <span class="chip-delete-btn" onclick="this.parentElement.remove()">&#10005;</span>`;
+					// De delete-knop herberekening meegeven wanneer een blokje handmatig wordt weggedrukt
+					chipDiv.innerHTML = `<span>${text}</span> <span class="chip-delete-btn" onclick="this.parentElement.remove(); const p = this.closest('.accordion-content'); if(p && p.classList.contains('show')) { p.style.maxHeight = p.scrollHeight + 'px'; }">&#10005;</span>`;
 					container.appendChild(chipDiv);
 					input.value = "";
+
+					// FIX: Pas de hoogte van het uitklapmenu direct aan de nieuwe inhoud aan
+					const panel = container.closest('.accordion-content');
+					if (panel && panel.classList.contains('show')) {
+						panel.style.maxHeight = panel.scrollHeight + "px";
+					}
 				}
 			}
 
@@ -3378,7 +3391,7 @@
 			function renderHub() {
 				["orders", "gifts", "shops"].forEach((type) => {
 					const listContainer = document.getElementById(
-						`${type}-list`,
+						`${type}-list`
 					);
 					if (!listContainer) return;
 					listContainer.innerHTML = "";
@@ -3395,9 +3408,14 @@
                         </div>
                     `;
 					});
+
+					// FIX: Pas de hoogte van het uitklapmenu direct aan de nieuwe inhoud aan
+					const panel = listContainer.closest('.accordion-content');
+					if (panel && panel.classList.contains('show')) {
+						panel.style.maxHeight = panel.scrollHeight + "px";
+					}
 				});
 			}
-
 			function addHubItem(type) {
 				let id =
 					type === "orders" ? "new-order-input"
