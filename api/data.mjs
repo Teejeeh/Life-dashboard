@@ -33,7 +33,10 @@ export default async function handler(req, res) {
 		} catch (err) {
 			if (
 				err.name === "BlobNotFoundError" ||
-				(err.message && err.message.includes("404"))
+				(err.message && (
+					err.message.includes("404") ||
+					err.message.includes("does not exist")
+				))
 			) {
 				return res.status(200).json({});
 			}
